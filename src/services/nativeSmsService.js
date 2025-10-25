@@ -1,4 +1,5 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import SimInfo from 'react-native-sim-info';
 
 const { SmsModule } = NativeModules;
 
@@ -98,7 +99,7 @@ class NativeSmsService {
 
   /**
    * Get available SIMs on the device
-   * Detects single and dual-SIM devices
+   * Detects single and dual-SIM devices using react-native-sim-info
    */
   async detectAvailableSims() {
     try {
@@ -107,15 +108,46 @@ class NativeSmsService {
         return [{ id: 0, name: 'Device SIM', phoneNumber: '', simSlot: 0, isReady: true }];
       }
 
-      console.log('🔍 Detecting available SIM cards...');
-
-      // First, try native SIM detection modules
+      console.log('🔍 Detecting available SIM cards using react-native-sim-info...');
       this.availableSims = [];
 
-      // Primary: Try SmsModule for SIM detection (most reliable)
+      try {
+        // Use react-native-sim-info to get all SIM slots
+        const simSlots = await SimInfo.getAllSimSlots();
+        console.log('📱 SimInfo result:', simSlots);
+
+        if (simSlots && Array.isArray(simSlots) && simSlots.length > 0) {
+          this.availableSims = simSlots.map((sim, index) => {
+            const displayName = sim.displayName || sim.carrierName || `SIM Slot ${index + 1}`;
+            const status = sim.isReady ? 
+              (sim.isActive ? ' (Active)' : ' (Ready)') : 
+              ' (Not Ready)';
+            
+            return {
+              id: index,
+              name: `${displayName}${status}`,
+              phoneNumber: sim.phoneNumber || '',
+              simSlot: index,
+              isReady: sim.isReady === true,
+              isActive: sim.isActive === true,
+              carrierName: sim.carrierName || '',
+              countryIso: sim.countryIso || '',
+              subscriptionId: sim.subscriptionId,
+            };
+          });
+          console.log('✓ Detected SIMs via react-native-sim-info:', this.availableSims);
+          return this.availableSims;
+        } else {
+          console.warn('⚠ SimInfo returned empty results');
+        }
+      } catch (simInfoError) {
+        console.warn('⚠ react-native-sim-info failed:', simInfoError.message);
+      }
+
+      // Fallback: Try old SmsModule for SIM detection (legacy support)
       try {
         if (SmsModule && typeof SmsModule.getAvailableSims === 'function') {
-          console.log('📱 SmsModule found, attempting SIM detection...');
+          console.log('📱 Fallback: SmsModule found, attempting SIM detection...');
           const simInfo = await SmsModule.getAvailableSims();
           console.log('📱 SmsModule result:', simInfo);
 
@@ -131,51 +163,33 @@ class NativeSmsService {
             }));
             console.log('✓ Detected SIMs via SmsModule:', this.availableSims);
             return this.availableSims;
-          } else {
-            console.warn('⚠ SmsModule returned empty results');
-          }
-        } else {
-          console.warn('⚠ SmsModule.getAvailableSims not available');
-        }
-      } catch (error) {
-        console.warn('⚠ SmsModule SIM detection failed:', error.message);
-      }
-
-      // Fallback: Try SimSlotModule for SIM detection
-      try {
-        if (NativeModules.SimSlotModule && typeof NativeModules.SimSlotModule.getSimSlots === 'function') {
-          console.log('📱 SimSlotModule found, attempting SIM detection...');
-          const simInfo = await NativeModules.SimSlotModule.getSimSlots();
-          console.log('📱 SimSlotModule result:', simInfo);
-
-          if (simInfo && Array.isArray(simInfo) && simInfo.length > 0) {
-            this.availableSims = simInfo.map((sim, index) => ({
-              id: index,
-              name: sim.name || `SIM Slot ${index + 1}${sim.isReady ? ' (Ready)' : ' (Not Ready)'}`,
-              phoneNumber: sim.phoneNumber && sim.phoneNumber !== 'Unknown' ? sim.phoneNumber : '',
-              simSlot: index,
-              isReady: sim.isReady === true,
-              isActive: sim.isActive === true,
-            }));
-            console.log('✓ Detected SIMs via SimSlotModule:', this.availableSims);
-            return this.availableSims;
           }
         }
       } catch (error) {
-        console.warn('⚠ SimSlotModule not available:', error.message);
+        console.warn('⚠ SmsModule fallback failed:', error.message);
       }
 
-      // Fallback: return default single SIM option
+      // Final Fallback: return default SIM options (supports up to 2 SIM slots)
       if (this.availableSims.length === 0) {
-        console.warn('⚠ No native SIM detection available, using default SIM configuration');
+        console.warn('⚠ No SIM detection available. Using default SIM configuration.');
+        
+        // Default to dual-SIM support (most common on Android devices)
         this.availableSims = [
           {
             id: 0,
-            name: 'Device SIM',
+            name: 'SIM Slot 1 (Primary)',
             phoneNumber: '',
             simSlot: 0,
             isReady: true,
             isActive: true,
+          },
+          {
+            id: 1,
+            name: 'SIM Slot 2 (Secondary)',
+            phoneNumber: '',
+            simSlot: 1,
+            isReady: false,
+            isActive: false,
           },
         ];
       }
@@ -184,16 +198,24 @@ class NativeSmsService {
       return this.availableSims;
     } catch (error) {
       console.error('✗ Error detecting SIMs:', error);
-      // Fallback to single SIM
-      console.warn('⚠ Returning default SIM due to error');
+      // Fallback to dual-SIM options
+      console.warn('⚠ Returning default SIM options due to error');
       return [
         {
           id: 0,
-          name: 'Device SIM',
+          name: 'SIM Slot 1 (Primary)',
           phoneNumber: '',
           simSlot: 0,
           isReady: true,
           isActive: true,
+        },
+        {
+          id: 1,
+          name: 'SIM Slot 2 (Secondary)',
+          phoneNumber: '',
+          simSlot: 1,
+          isReady: false,
+          isActive: false,
         },
       ];
     }

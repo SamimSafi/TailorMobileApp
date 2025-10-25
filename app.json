@@ -45,7 +45,15 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "permissions": [
+              "android.permission.SEND_SMS",
+              "android.permission.READ_PHONE_STATE",
+              "android.permission.READ_SMS",
+              "android.permission.ACCESS_NETWORK_STATE"
+            ],
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34
           }
         }
       ]
