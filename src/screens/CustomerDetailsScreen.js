@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import InvoiceList from '../components/InvoiceList';
 import PaymentModal from '../components/PaymentModal';
 import QadAndamList from '../components/QadAndamList';
+import SmsExample from '../components/SmsExample';
 import { useCustomerStore } from '../store/customerStore';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -33,6 +34,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState('items'); // 'items' or 'invoices'
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [smsModalVisible, setSmsModalVisible] = useState(false);
   const customerId = customer?.customerId;
 
   // Reload data when screen is focused
@@ -127,25 +129,33 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Customer Details</Text>
-        <TouchableOpacity
-          disabled={loading || !customerId}
-          onPress={() => {
-            if (!customerId) {
-              return;
-            }
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setSmsModalVisible(true)}
+          >
+            <Ionicons name="mail" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            disabled={loading || !customerId}
+            onPress={() => {
+              if (!customerId) {
+                return;
+              }
 
-            refreshCustomerData(customerId)
-              .catch((err) => {
-                console.error('Failed to refresh customer data:', err);
-              });
-          }}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <Ionicons name="refresh" size={24} color={colors.white} />
-          )}
-        </TouchableOpacity>
+              refreshCustomerData(customerId)
+                .catch((err) => {
+                  console.error('Failed to refresh customer data:', err);
+                });
+            }}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Ionicons name="refresh" size={24} color={colors.white} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -342,6 +352,12 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           setSelectedInvoice(null);
         }}
       />
+
+      {/* SMS Modal */}
+      <SmsExample
+        visible={smsModalVisible}
+        onClose={() => setSmsModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -363,6 +379,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.white,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerButton: {
+    padding: spacing.xs,
   },
   content: {
     flex: 1,
