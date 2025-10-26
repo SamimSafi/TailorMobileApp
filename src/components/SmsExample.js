@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   Modal,
   ScrollView,
@@ -27,12 +28,32 @@ const SmsExample = ({ visible, onClose }) => {
   const [smsAvailable, setSmsAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
+  const resultScaleAnim = useRef(new Animated.Value(0)).current;
+  const resultOpacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       initializeSms();
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (result) {
+      resultScaleAnim.setValue(0);
+      resultOpacityAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(resultScaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(resultOpacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [result]);
 
   const initializeSms = async () => {
     try {
@@ -98,28 +119,24 @@ const SmsExample = ({ visible, onClose }) => {
       console.log('✅ SMS sent successfully:', sendResult);
       setResult({
         success: true,
-        message: 'SMS sent successfully!',
-        details: `Sent to ${phoneNumber} via ${selectedSim.name}`,
+        title: '✅ SMS Sent Successfully',
+        message: `Message delivered to ${phoneNumber}`,
+        details: `Using: ${selectedSim.name}`,
+        timestamp: new Date().toLocaleTimeString(),
       });
 
-      Alert.alert('Success', 'SMS sent successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setPhoneNumber('');
-            setMessage('');
-            setResult(null);
-          },
-        },
-      ]);
+      setTimeout(() => {
+        setPhoneNumber('');
+        setMessage('');
+      }, 2000);
     } catch (error) {
       console.error('Error sending SMS:', error);
       setResult({
         success: false,
-        message: 'Failed to send SMS',
-        details: error.message,
+        title: '❌ Failed to Send SMS',
+        message: error.message || 'An error occurred',
+        details: 'Please try again',
       });
-      Alert.alert('Error', error.message || 'Failed to send SMS');
     } finally {
       setIsSending(false);
     }
@@ -316,14 +333,19 @@ const SmsExample = ({ visible, onClose }) => {
             </View>
 
             {result && (
-              <View
+              <Animated.View
                 style={[
                   styles.resultBox,
                   result.success
                     ? styles.resultBoxSuccess
                     : styles.resultBoxError,
+                  {
+                    transform: [{ scale: resultScaleAnim }],
+                    opacity: resultOpacityAnim,
+                  },
                 ]}
               >
+                <Text style={styles.resultTitle}>{result.title}</Text>
                 <Text
                   style={[
                     styles.resultMessage,
@@ -332,12 +354,15 @@ const SmsExample = ({ visible, onClose }) => {
                       : styles.resultMessageError,
                   ]}
                 >
-                  {result.success ? '✅' : '❌'} {result.message}
+                  {result.message}
                 </Text>
                 {result.details && (
                   <Text style={styles.resultDetails}>{result.details}</Text>
                 )}
-              </View>
+                {result.timestamp && (
+                  <Text style={styles.resultTimestamp}>{result.timestamp}</Text>
+                )}
+              </Animated.View>
             )}
 
             <View style={styles.footer} />
@@ -365,26 +390,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    backgroundColor: colors.primary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     marginTop: spacing.sm,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
+    fontWeight: '700',
+    color: colors.white,
   },
   cancelButton: {
-    color: colors.textSecondary,
+    color: colors.white,
     fontSize: 16,
+    fontWeight: '500',
   },
   sendButton: {
-    color: colors.primary,
+    color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   content: {
     flex: 1,
@@ -432,17 +459,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   infoBox: {
-    backgroundColor: colors.infoBackground || '#EEF4FF',
-    borderLeftWidth: 4,
+    backgroundColor: colors.infoBackground || '#E3F2FD',
+    borderLeftWidth: 5,
     borderLeftColor: colors.primary,
     padding: spacing.md,
-    borderRadius: 6,
+    borderRadius: 8,
     marginBottom: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   infoText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 18,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   simGrid: {
     flexDirection: 'row',
@@ -455,15 +488,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   simCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary + '15',
+    borderWidth: 2,
+    shadowOpacity: 0.15,
+    elevation: 4,
   },
   simCardContent: {
     flex: 1,
@@ -499,35 +540,49 @@ const styles = StyleSheet.create({
   },
   simDetailsBox: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    borderRadius: 10,
     padding: spacing.md,
     marginBottom: spacing.xl,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   simDetailsTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
     marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + '20',
   },
   simDetail: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    lineHeight: 18,
   },
   detailLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.primary,
   },
   input: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing.md,
     fontSize: 14,
     color: colors.text,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   messageHeader: {
     flexDirection: 'row',
@@ -537,34 +592,55 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: colors.primary,
+    backgroundColor: colors.infoBackground || '#E3F2FD',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 6,
   },
   messageInput: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: spacing.md,
     minHeight: 100,
     fontSize: 14,
     color: colors.text,
     textAlignVertical: 'top',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   resultBox: {
-    borderRadius: 8,
-    padding: spacing.md,
+    borderRadius: 12,
+    padding: spacing.lg,
     marginTop: spacing.lg,
     marginBottom: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   resultBoxSuccess: {
-    backgroundColor: '#D4EDDA',
-    borderLeftWidth: 4,
-    borderLeftColor: '#28A745',
+    backgroundColor: '#E8F5E9',
+    borderLeftWidth: 5,
+    borderLeftColor: '#4CAF50',
   },
   resultBoxError: {
-    backgroundColor: '#F8D7DA',
-    borderLeftWidth: 4,
-    borderLeftColor: '#DC3545',
+    backgroundColor: '#FFEBEE',
+    borderLeftWidth: 5,
+    borderLeftColor: '#F44336',
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+    color: colors.text,
   },
   resultMessage: {
     fontSize: 14,
@@ -572,14 +648,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   resultMessageSuccess: {
-    color: '#155724',
+    color: '#2E7D32',
   },
   resultMessageError: {
-    color: '#721C24',
+    color: '#C62828',
   },
   resultDetails: {
-    fontSize: 12,
-    color: 'inherit',
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  resultTimestamp: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
   loadingOverlay: {
     position: 'absolute',

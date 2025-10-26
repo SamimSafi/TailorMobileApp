@@ -355,9 +355,9 @@ class NativeSmsService {
     }
 
     // If it starts with 0 (local number), replace with country code
-    // For Pakistan: 92
+    // For Afghanistan: 93
     if (cleaned.startsWith('0')) {
-      return '+92' + cleaned.substring(1);
+      return '+93' + cleaned.substring(1);
     }
 
     // If it starts with country code without +, add it
