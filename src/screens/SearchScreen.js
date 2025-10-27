@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
@@ -6,9 +7,11 @@ import {
     FlatList,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddCustomerModal from '../components/AddCustomerModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import CustomerCard from '../components/CustomerCard';
 import SearchBar from '../components/SearchBar';
@@ -24,6 +27,7 @@ const SearchScreen = ({ navigation }) => {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [messageModalVisible, setMessageModalVisible] = useState(false);
   const [selectedCustomerForMessage, setSelectedCustomerForMessage] = useState(null);
+  const [addCustomerModalVisible, setAddCustomerModalVisible] = useState(false);
   const searchStore = useSearchStore();
   const customerStore = useCustomerStore();
 
@@ -101,6 +105,13 @@ const SearchScreen = ({ navigation }) => {
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>No customers found</Text>
+          <TouchableOpacity
+            style={styles.addCustomerButton}
+            onPress={() => setAddCustomerModalVisible(true)}
+          >
+            <Ionicons name="add-circle" size={20} color={colors.white} />
+            <Text style={styles.addCustomerButtonText}>Add New Customer</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -110,6 +121,13 @@ const SearchScreen = ({ navigation }) => {
         <Text style={styles.emptyText}>
           Search for a customer by name or phone number
         </Text>
+        <TouchableOpacity
+          style={styles.addCustomerButton}
+          onPress={() => setAddCustomerModalVisible(true)}
+        >
+          <Ionicons name="add-circle" size={20} color={colors.white} />
+          <Text style={styles.addCustomerButtonText}>Add New Customer</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -159,6 +177,17 @@ const SearchScreen = ({ navigation }) => {
           Alert.alert('Success', 'Message sent successfully!');
         }}
       />
+
+      <AddCustomerModal
+        visible={addCustomerModalVisible}
+        onClose={() => setAddCustomerModalVisible(false)}
+        onSuccess={(newCustomer) => {
+          // Refresh search or navigate to new customer
+          if (newCustomer) {
+            Alert.alert('Success', 'Customer added! You can now search for them.');
+          }
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -201,6 +230,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.error,
     textAlign: 'center',
+  },
+  addCustomerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  addCustomerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
   },
 });
 

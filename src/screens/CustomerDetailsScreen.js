@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddQadAndamModal from '../components/AddQadAndamModal';
 import InvoiceList from '../components/InvoiceList';
 import PaymentModal from '../components/PaymentModal';
 import QadAndamList from '../components/QadAndamList';
@@ -35,6 +36,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [smsModalVisible, setSmsModalVisible] = useState(false);
+  const [addQadAndamModalVisible, setAddQadAndamModalVisible] = useState(false);
   const customerId = customer?.customerId;
 
   // Reload data when screen is focused
@@ -310,26 +312,51 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
             </View>
           ) : activeTab === 'items' ? (
             <>
-              <QadAndamList
-                qadAndams={qadAndams}
-                loading={false}
-                onSelectQadAndam={handleSelectQadAndam}
-              />
-              {qadAndams.length > 0 && (
-                <TouchableOpacity
-                  style={styles.createInvoiceButton}
-                  onPress={() => {
-                    navigation.navigate('CreateInvoice', {
-                      customer,
-                      qadAndam: null,
-                    });
-                  }}
-                >
-                  <Ionicons name="add-circle" size={20} color={colors.white} />
-                  <Text style={styles.createInvoiceButtonText}>
-                    Create Invoice
-                  </Text>
-                </TouchableOpacity>
+              {qadAndams.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="shirt-outline" size={48} color={colors.lightGray} />
+                  <Text style={styles.emptyStateText}>No measurements registered yet</Text>
+                  <TouchableOpacity
+                    style={styles.addQadAndamButton}
+                    onPress={() => setAddQadAndamModalVisible(true)}
+                  >
+                    <Ionicons name="add-circle" size={20} color={colors.white} />
+                    <Text style={styles.addQadAndamButtonText}>
+                      Register Measurement
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <QadAndamList
+                    qadAndams={qadAndams}
+                    loading={false}
+                    onSelectQadAndam={handleSelectQadAndam}
+                  />
+                  <TouchableOpacity
+                    style={styles.createInvoiceButton}
+                    onPress={() => {
+                      navigation.navigate('CreateInvoice', {
+                        customer,
+                        qadAndam: null,
+                      });
+                    }}
+                  >
+                    <Ionicons name="add-circle" size={20} color={colors.white} />
+                    <Text style={styles.createInvoiceButtonText}>
+                      Create Invoice
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.addQadAndamButton}
+                    onPress={() => setAddQadAndamModalVisible(true)}
+                  >
+                    <Ionicons name="add-circle" size={20} color={colors.white} />
+                    <Text style={styles.addQadAndamButtonText}>
+                      Add Another Measurement
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
             </>
           ) : (
@@ -357,6 +384,19 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
       <SmsExample
         visible={smsModalVisible}
         onClose={() => setSmsModalVisible(false)}
+      />
+
+      {/* Add Qad Andam Modal */}
+      <AddQadAndamModal
+        visible={addQadAndamModalVisible}
+        onClose={() => setAddQadAndamModalVisible(false)}
+        customerId={customerId}
+        onSuccess={() => {
+          // Refresh customer data to get the new qad andam
+          if (customerId) {
+            refreshCustomerData(customerId);
+          }
+        }}
       />
     </SafeAreaView>
   );
@@ -549,6 +589,33 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   createInvoiceButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.darkGray,
+    textAlign: 'center',
+  },
+  addQadAndamButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  addQadAndamButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',

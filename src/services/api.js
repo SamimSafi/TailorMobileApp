@@ -141,6 +141,21 @@ export const searchCustomers = (
   });
 
 /**
+ * Create a new customer
+ * Endpoint: POST /customers
+ * @param {object} customerData - Customer information
+ * @param {string} customerData.customerName - Customer name
+ * @param {string} customerData.name - Additional name field
+ * @param {string} customerData.phoneNumber - Phone number
+ * @param {string} customerData.phone - Alternative phone field
+ * @param {string} customerData.address - Customer address
+ * @param {number} customerData.balance - Initial balance
+ * @param {string} customerData.notes - Optional notes
+ */
+export const createCustomer = (customerData) =>
+  apiClient.post('/v1/customers', customerData);
+
+/**
  * Get customer details by ID
  * Endpoint: GET /v1/customers/{customerId}
  */
@@ -153,6 +168,24 @@ export const getCustomer = (customerId) =>
  */
 export const getQadAndams = (customerId) =>
   apiClient.get(`/v1/qad-andam/customer/${customerId}`);
+
+/**
+ * Create a new QAD Andam for a customer
+ * Endpoint: POST /qad-andam
+ * @param {object} qadAndamData - QAD Andam information
+ * @param {string} qadAndamData.customerId - Customer ID
+ * @param {string} qadAndamData.qadAndamType - Type: Kala, Darishi, Waskat, Kurti
+ * @param {object} qadAndamData.measurements - Measurement object with all field values
+ * @param {number} qadAndamData.totalAmount - Total amount
+ * @param {number} qadAndamData.paidAmount - Paid amount
+ * @param {number} qadAndamData.joraCount - Number of pieces
+ * @param {string} qadAndamData.dueDate - Due date (ISO string)
+ * @param {string} qadAndamData.description - Optional description
+ * @param {string} qadAndamData.returnDate - Optional return date
+ * @param {string} qadAndamData.enterDate - Optional enter date
+ */
+export const createQadAndam = (qadAndamData) =>
+  apiClient.post('/v1/qad-andam', qadAndamData);
 
 /**
  * Create invoice for existing QAD Andam
