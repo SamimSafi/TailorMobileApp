@@ -170,6 +170,24 @@ class NativeSmsService {
               allSimData: sim
             });
             
+            // Debug: Show ALL fields to identify phone number field
+            console.log(`📱 [DEBUG SIM ${index}] Phone number field check:`, {
+              'phoneNumbers[index]': phoneNumbers?.[index],
+              'sim.number': sim.number,
+              'sim.phoneNumber': sim.phoneNumber,
+              'sim.phone': sim.phone,
+              'sim.line1Number': sim.line1Number,
+              'sim.line1': sim.line1,
+              'sim.msisdn': sim.msisdn,
+              'sim.mdn': sim.mdn,
+              'sim.primaryNumber': sim.primaryNumber,
+              'sim.mobileNumber': sim.mobileNumber,
+              'sim.displayNumber': sim.displayNumber,
+              'sim.telNumber': sim.telNumber,
+              'sim.devicePhoneNumber': sim.devicePhoneNumber,
+              'sim.nativePhoneNumber': sim.nativePhoneNumber,
+            });
+            
             return {
               id: index,
               name: carrierName,
@@ -228,6 +246,24 @@ class NativeSmsService {
               sim.nativePhoneNumber ||
               '';
             
+            // Debug: Show ALL fields to identify phone number field
+            console.log(`📱 [DEBUG SIM ${index} - react-native-sim-info] Phone number field check:`, {
+              'sim.number': sim.number,
+              'sim.phoneNumber': sim.phoneNumber,
+              'sim.phone': sim.phone,
+              'sim.line1Number': sim.line1Number,
+              'sim.line1': sim.line1,
+              'sim.msisdn': sim.msisdn,
+              'sim.mdn': sim.mdn,
+              'sim.primaryNumber': sim.primaryNumber,
+              'sim.mobileNumber': sim.mobileNumber,
+              'sim.displayNumber': sim.displayNumber,
+              'sim.telNumber': sim.telNumber,
+              'sim.devicePhoneNumber': sim.devicePhoneNumber,
+              'sim.nativePhoneNumber': sim.nativePhoneNumber,
+              'allSimData': sim,
+            });
+            
             return {
               id: sim.slotIndex !== undefined ? sim.slotIndex : index,
               name: carrierName,
@@ -258,6 +294,17 @@ class NativeSmsService {
           console.log('📱 Attempting SIM detection via SmsModule (fallback)...');
           const simInfo = await SmsModule.getAvailableSims();
           console.log('📱 SmsModule result:', simInfo);
+          
+          // Also get phone numbers from native module using TelephonyManager
+          let phoneNumbers = [];
+          if (SmsModule && typeof SmsModule.getPhoneNumbers === 'function') {
+            try {
+              phoneNumbers = await SmsModule.getPhoneNumbers();
+              console.log('📱 SmsModule getPhoneNumbers result:', phoneNumbers);
+            } catch (phoneNumberError) {
+              console.warn('⚠ Could not get phone numbers from SmsModule:', phoneNumberError.message);
+            }
+          }
 
           if (simInfo && Array.isArray(simInfo) && simInfo.length > 0) {
             this.availableSims = simInfo.map((sim, index) => {
@@ -272,7 +319,9 @@ class NativeSmsService {
                 `SIM Slot ${index + 1}`;
               
               // Try all possible field names for phone number
+              // Priority: Native TelephonyManager result > SIM fields
               const phoneNumber = 
+                phoneNumbers?.[index] ||  // Phone number from native TelephonyManager
                 sim.number || 
                 sim.phone || 
                 sim.phoneNumber || 
@@ -287,6 +336,25 @@ class NativeSmsService {
                 sim.devicePhoneNumber ||
                 sim.nativePhoneNumber ||
                 '';
+              
+              // Debug: Show ALL fields to identify phone number field
+              console.log(`📱 [DEBUG SIM ${index} - SmsModule] Phone number field check:`, {
+                'phoneNumbers[index] (Native TelephonyManager)': phoneNumbers?.[index],
+                'sim.number': sim.number,
+                'sim.phone': sim.phone,
+                'sim.phoneNumber': sim.phoneNumber,
+                'sim.line1Number': sim.line1Number,
+                'sim.line1': sim.line1,
+                'sim.msisdn': sim.msisdn,
+                'sim.mdn': sim.mdn,
+                'sim.primaryNumber': sim.primaryNumber,
+                'sim.mobileNumber': sim.mobileNumber,
+                'sim.displayNumber': sim.displayNumber,
+                'sim.telNumber': sim.telNumber,
+                'sim.devicePhoneNumber': sim.devicePhoneNumber,
+                'sim.nativePhoneNumber': sim.nativePhoneNumber,
+                'allSimData': sim,
+              });
               
               return {
                 id: sim.slotIndex !== undefined ? sim.slotIndex : index,
