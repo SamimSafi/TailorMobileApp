@@ -7,9 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "xposemobileapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "deploymentTarget": "15.1"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,8 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.samimjn.XposeMobileApp",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "jsEngineName": "hermes"
     },
     "web": {
       "output": "static",
@@ -52,7 +54,15 @@
               "android.permission.ACCESS_NETWORK_STATE"
             ],
             "compileSdkVersion": 35,
-            "targetSdkVersion": 35
+            "targetSdkVersion": 35,
+            "enableProguardObfuscation": true,
+            "enableShrinkingResourcesInReleaseBuilds": true,
+            "minifyEnabled": true,
+            "jsEngineName": "hermes",
+            "extraProguardRules": "-keep class com.facebook.hermes.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class com.facebook.react.** { *; }"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
         }
       ]
