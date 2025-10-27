@@ -1,5 +1,6 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 import SimInfo from 'react-native-sim-info';
+import { getActiveSIMInfoList, getAllPhoneNumbers } from 'react-native-simcard-info';
 
 const { SmsModule } = NativeModules;
 
@@ -23,8 +24,13 @@ class NativeSmsService {
       const permissions = [
         PermissionsAndroid.PERMISSIONS.SEND_SMS,
         PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
-        PermissionsAndroid.PERMISSIONS.READ_SMS,
+        PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS, // To read actual phone numbers
       ];
+
+      // Try to add optional permissions if available
+      if (PermissionsAndroid.PERMISSIONS.READ_CONTACTS) {
+        permissions.push(PermissionsAndroid.PERMISSIONS.READ_CONTACTS);
+      }
 
       console.log('Requesting SMS permissions:', permissions);
       const result = await PermissionsAndroid.requestMultiple(permissions);
@@ -34,12 +40,15 @@ class NativeSmsService {
       // Check if all critical permissions are granted
       const sendSmsGranted = result[PermissionsAndroid.PERMISSIONS.SEND_SMS] === PermissionsAndroid.RESULTS.GRANTED;
       const readPhoneGranted = result[PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE] === PermissionsAndroid.RESULTS.GRANTED;
+      const readPhoneNumbersGranted = result[PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS] === PermissionsAndroid.RESULTS.GRANTED;
+
+      console.log('Permission summary:', { sendSmsGranted, readPhoneGranted, readPhoneNumbersGranted });
 
       if (sendSmsGranted && readPhoneGranted) {
         console.log('✓ Critical SMS permissions granted');
         return true;
       } else {
-        console.warn('SMS permissions denied:', { sendSmsGranted, readPhoneGranted });
+        console.warn('SMS permissions denied:', { sendSmsGranted, readPhoneGranted, readPhoneNumbersGranted });
         return false;
       }
     } catch (error) {
@@ -99,7 +108,7 @@ class NativeSmsService {
 
   /**
    * Get available SIMs on the device
-   * Detects single and dual-SIM devices using react-native-sim-info
+   * Detects single and dual-SIM devices
    */
   async detectAvailableSims() {
     try {
@@ -108,31 +117,130 @@ class NativeSmsService {
         return [{ id: 0, name: 'Device SIM', phoneNumber: '', simSlot: 0, isReady: true }];
       }
 
-      console.log('🔍 Detecting available SIM cards using react-native-sim-info...');
+      console.log('🔍 Detecting available SIM cards...');
       this.availableSims = [];
 
+      // Primary: Try react-native-simcard-info for SIM display info (best data)
       try {
-        // Use react-native-sim-info to get all SIM slots
+        console.log('📱 Attempting SIM detection via react-native-simcard-info...');
+        
+        const [activeSimList, phoneNumbers] = await Promise.all([
+          getActiveSIMInfoList(),
+          getAllPhoneNumbers(),
+        ]);
+        
+        console.log('📱 react-native-simcard-info - activeSimList:', activeSimList);
+        console.log('📱 react-native-simcard-info - phoneNumbers:', phoneNumbers);
+
+        if (activeSimList && Array.isArray(activeSimList) && activeSimList.length > 0) {
+          this.availableSims = activeSimList.map((sim, index) => {
+            // Try all possible field names for carrier info
+            const carrierName = 
+              sim.carrierName || 
+              sim.carrier || 
+              sim.displayName || 
+              sim.simOperatorName || 
+              sim.operatorName ||
+              `SIM ${index + 1}`;
+            
+            // Try all possible field names for phone number
+            const phoneNumber = 
+              phoneNumbers?.[index] || 
+              sim.number || 
+              sim.phoneNumber || 
+              sim.phone || 
+              sim.line1Number || 
+              sim.line1 ||
+              sim.msisdn ||
+              sim.mdn ||
+              sim.primaryNumber ||
+              sim.mobileNumber ||
+              sim.displayNumber ||
+              sim.telNumber ||
+              sim.devicePhoneNumber ||
+              sim.nativePhoneNumber ||
+              '';
+            
+            console.log(`📱 Mapping SIM ${index}:`, { 
+              carrierName, 
+              phoneNumber, 
+              simCarrierName: sim.carrierName,
+              simNumber: sim.number,
+              simPhone: sim.phoneNumber,
+              allSimData: sim
+            });
+            
+            return {
+              id: index,
+              name: carrierName,
+              phoneNumber: phoneNumber,
+              simSlot: index,
+              isReady: true,
+              isActive: true,
+              subscriptionId: sim.subscriptionId,
+              carrierName: carrierName,
+              iccId: sim.iccId || sim.iccid || '',
+              mcc: sim.mcc || '',
+              mnc: sim.mnc || '',
+              countryIso: sim.countryIso || sim.countryCode || 'AF',
+            };
+          });
+          console.log('✓ Successfully detected SIMs via react-native-simcard-info:', this.availableSims);
+          return this.availableSims;
+        } else {
+          console.warn('⚠ react-native-simcard-info returned empty results');
+        }
+      } catch (simCardInfoError) {
+        console.warn('⚠ react-native-simcard-info failed:', simCardInfoError.message);
+      }
+
+      // Secondary: Try react-native-sim-info
+      try {
+        console.log('📱 Attempting SIM detection via react-native-sim-info (fallback)...');
         const simSlots = await SimInfo.getAllSimSlots();
         console.log('📱 SimInfo result:', simSlots);
 
         if (simSlots && Array.isArray(simSlots) && simSlots.length > 0) {
           this.availableSims = simSlots.map((sim, index) => {
-            const displayName = sim.displayName || sim.carrierName || `SIM Slot ${index + 1}`;
-            const status = sim.isReady ? 
-              (sim.isActive ? ' (Active)' : ' (Ready)') : 
-              ' (Not Ready)';
+            // Try all possible field names for carrier info
+            const carrierName = 
+              sim.carrierName || 
+              sim.carrier || 
+              sim.displayName || 
+              sim.simOperatorName || 
+              sim.operatorName ||
+              `SIM Slot ${index + 1}`;
+            
+            // Try all possible field names for phone number
+            const phoneNumber = 
+              sim.number || 
+              sim.phoneNumber || 
+              sim.phone || 
+              sim.line1Number || 
+              sim.line1 ||
+              sim.msisdn ||
+              sim.mdn ||
+              sim.primaryNumber ||
+              sim.mobileNumber ||
+              sim.displayNumber ||
+              sim.telNumber ||
+              sim.devicePhoneNumber ||
+              sim.nativePhoneNumber ||
+              '';
             
             return {
-              id: index,
-              name: `${displayName}${status}`,
-              phoneNumber: sim.phoneNumber || '',
-              simSlot: index,
+              id: sim.slotIndex !== undefined ? sim.slotIndex : index,
+              name: carrierName,
+              phoneNumber: phoneNumber,
+              simSlot: sim.slotIndex !== undefined ? sim.slotIndex : index,
               isReady: sim.isReady === true,
               isActive: sim.isActive === true,
-              carrierName: sim.carrierName || '',
-              countryIso: sim.countryIso || '',
+              carrierName: carrierName,
+              countryIso: sim.countryIso || 'AF',
               subscriptionId: sim.subscriptionId,
+              iccId: sim.iccId || '',
+              mcc: sim.mcc || '',
+              mnc: sim.mnc || '',
             };
           });
           console.log('✓ Detected SIMs via react-native-sim-info:', this.availableSims);
@@ -144,29 +252,65 @@ class NativeSmsService {
         console.warn('⚠ react-native-sim-info failed:', simInfoError.message);
       }
 
-      // Fallback: Try old SmsModule for SIM detection (legacy support)
-      try {
-        if (SmsModule && typeof SmsModule.getAvailableSims === 'function') {
-          console.log('📱 Fallback: SmsModule found, attempting SIM detection...');
+      // Tertiary: Try SmsModule for SIM detection (as additional fallback)
+      if (SmsModule && typeof SmsModule.getAvailableSims === 'function') {
+        try {
+          console.log('📱 Attempting SIM detection via SmsModule (fallback)...');
           const simInfo = await SmsModule.getAvailableSims();
           console.log('📱 SmsModule result:', simInfo);
 
           if (simInfo && Array.isArray(simInfo) && simInfo.length > 0) {
-            this.availableSims = simInfo.map((sim, index) => ({
-              id: index,
-              name: sim.displayName || sim.displayname || `SIM ${index + 1}`,
-              phoneNumber: sim.phone || sim.phoneNumber || '',
-              simSlot: sim.slotIndex || index,
-              isReady: sim.isReady !== false,
-              isActive: sim.isActive !== false,
-              subscriptionId: sim.subscriptionId,
-            }));
-            console.log('✓ Detected SIMs via SmsModule:', this.availableSims);
+            this.availableSims = simInfo.map((sim, index) => {
+              // Try all possible field names for carrier info
+              const carrierName = 
+                sim.carrierName || 
+                sim.carrier || 
+                sim.displayName || 
+                sim.displayname || 
+                sim.simOperatorName || 
+                sim.operatorName ||
+                `SIM Slot ${index + 1}`;
+              
+              // Try all possible field names for phone number
+              const phoneNumber = 
+                sim.number || 
+                sim.phone || 
+                sim.phoneNumber || 
+                sim.line1Number || 
+                sim.line1 ||
+                sim.msisdn ||
+                sim.mdn ||
+                sim.primaryNumber ||
+                sim.mobileNumber ||
+                sim.displayNumber ||
+                sim.telNumber ||
+                sim.devicePhoneNumber ||
+                sim.nativePhoneNumber ||
+                '';
+              
+              return {
+                id: sim.slotIndex !== undefined ? sim.slotIndex : index,
+                name: carrierName,
+                phoneNumber: phoneNumber,
+                simSlot: sim.slotIndex !== undefined ? sim.slotIndex : index,
+                isReady: sim.isReady !== false,
+                isActive: sim.isActive !== false,
+                subscriptionId: sim.subscriptionId,
+                carrierName: carrierName,
+                iccId: sim.iccId || '',
+                mcc: sim.mcc || '',
+                mnc: sim.mnc || '',
+                countryIso: sim.countryIso || 'AF',
+              };
+            });
+            console.log('✓ Successfully detected SIMs via SmsModule:', this.availableSims);
             return this.availableSims;
+          } else {
+            console.warn('⚠ SmsModule returned empty results');
           }
+        } catch (smsModuleError) {
+          console.warn('⚠ SmsModule detection failed:', smsModuleError.message);
         }
-      } catch (error) {
-        console.warn('⚠ SmsModule fallback failed:', error.message);
       }
 
       // Final Fallback: return default SIM options (supports up to 2 SIM slots)
@@ -182,6 +326,11 @@ class NativeSmsService {
             simSlot: 0,
             isReady: true,
             isActive: true,
+            carrierName: 'Unknown Carrier',
+            countryIso: 'AF',
+            iccId: '',
+            mcc: '',
+            mnc: '',
           },
           {
             id: 1,
@@ -190,6 +339,11 @@ class NativeSmsService {
             simSlot: 1,
             isReady: false,
             isActive: false,
+            carrierName: 'Unknown Carrier',
+            countryIso: 'AF',
+            iccId: '',
+            mcc: '',
+            mnc: '',
           },
         ];
       }
@@ -208,6 +362,11 @@ class NativeSmsService {
           simSlot: 0,
           isReady: true,
           isActive: true,
+          carrierName: 'Unknown Carrier',
+          countryIso: 'AF',
+          iccId: '',
+          mcc: '',
+          mnc: '',
         },
         {
           id: 1,
@@ -216,6 +375,11 @@ class NativeSmsService {
           simSlot: 1,
           isReady: false,
           isActive: false,
+          carrierName: 'Unknown Carrier',
+          countryIso: 'AF',
+          iccId: '',
+          mcc: '',
+          mnc: '',
         },
       ];
     }
@@ -468,7 +632,16 @@ export const sendSmsToMultipleCustomers = (
     simSlot
   );
 
-export const getAvailableSims = () => nativeSmsService.getSimOptions();
+export const getAvailableSims = async () => {
+  try {
+    const sims = await nativeSmsService.detectAvailableSims();
+    console.log('✅ getAvailableSims export returning:', sims);
+    return sims;
+  } catch (error) {
+    console.error('❌ getAvailableSims export error:', error);
+    throw error;
+  }
+};
 
 export const logMessageHistory = (
   customerId,

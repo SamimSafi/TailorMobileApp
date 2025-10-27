@@ -363,15 +363,15 @@
 
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { MESSAGE_TEMPLATES } from '../constants/messageTemplates';
 import { checkSmsAvailability, getAvailableSims, sendSmsToCustomer, sendSmsToMultipleCustomers } from '../services/nativeSmsService';
@@ -423,6 +423,17 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
       console.log('Loaded SIMs:', sims);
 
       if (sims && Array.isArray(sims) && sims.length > 0) {
+        // Log detailed SIM info for debugging
+        sims.forEach((sim, idx) => {
+          console.log(`📱 ========== SIM ${idx} ==========`);
+          console.log(`  id: ${sim.id}`);
+          console.log(`  name: ${sim.name}`);
+          console.log(`  carrierName: ${sim.carrierName}`);
+          console.log(`  phoneNumber: ${sim.phoneNumber}`);
+          console.log(`  isActive: ${sim.isActive}`);
+          console.log(`  isReady: ${sim.isReady}`);
+        });
+
         setAvailableSims(sims);
         const firstSimId = sims[0].id !== undefined ? sims[0].id : 0;
         setSelectedSimSlot(firstSimId);
@@ -566,36 +577,39 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Select SIM Card</Text>
               <View style={styles.simSelector}>
-                {availableSims.map((sim) => (
-                  <TouchableOpacity
-                    key={sim.id}
-                    style={[
-                      styles.simOption,
-                      selectedSimSlot === sim.id && styles.simOptionSelected,
-                    ]}
-                    onPress={() => setSelectedSimSlot(sim.id)}
-                  >
-                    <View style={styles.simOptionContent}>
-                      <Text style={[
-                        styles.simOptionText,
-                        selectedSimSlot === sim.id && styles.simOptionTextSelected,
-                      ]}>
-                        {sim.name}
-                      </Text>
-                      {sim.phoneNumber && sim.phoneNumber !== 'Unknown' && (
+                {availableSims.map((sim) => {
+                  const displayCarrier = sim.carrierName || sim.name || `SIM ${sim.id + 1}`;
+                  const displayPhone = sim.phoneNumber || 'No number assigned';
+
+                  return (
+                    <TouchableOpacity
+                      key={sim.id}
+                      style={[
+                        styles.simOption,
+                        selectedSimSlot === sim.id && styles.simOptionSelected,
+                      ]}
+                      onPress={() => setSelectedSimSlot(sim.id)}
+                    >
+                      <View style={styles.simOptionContent}>
+                        <Text style={[
+                          styles.simOptionText,
+                          selectedSimSlot === sim.id && styles.simOptionTextSelected,
+                        ]}>
+                          {displayCarrier}
+                        </Text>
                         <Text style={[
                           styles.simPhoneText,
                           selectedSimSlot === sim.id && styles.simPhoneTextSelected,
                         ]}>
-                          {sim.phoneNumber}
+                          {displayPhone}
                         </Text>
+                      </View>
+                      {selectedSimSlot === sim.id && (
+                        <Text style={styles.simCheckmark}>✓</Text>
                       )}
-                    </View>
-                    {selectedSimSlot === sim.id && (
-                      <Text style={styles.simCheckmark}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           )}

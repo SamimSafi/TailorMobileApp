@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import {
-  checkSmsAvailability,
-  getAvailableSims,
-  sendSmsToCustomer,
+    checkSmsAvailability,
+    getAvailableSims,
+    sendSmsToCustomer,
 } from '../services/nativeSmsService';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -65,11 +65,32 @@ const SmsExample = ({ visible, onClose }) => {
       setSmsAvailable(available);
 
       if (available) {
-        const sims = await getAvailableSims();
-        console.log('📱 Available SIMs:', sims);
-        setAvailableSims(sims);
-        if (sims && sims.length > 0) {
-          setSelectedSim(sims[0]);
+        try {
+          const sims = await getAvailableSims();
+          console.log('📱 Available SIMs (raw):', JSON.stringify(sims, null, 2));
+          console.log('📱 SIM Count:', sims?.length || 0);
+          
+          if (sims && Array.isArray(sims) && sims.length > 0) {
+            sims.forEach((sim, idx) => {
+              console.log(`📱 ========== SIM ${idx} ==========`);
+              console.log(`  id: ${sim.id}`);
+              console.log(`  name: ${sim.name}`);
+              console.log(`  phoneNumber: ${sim.phoneNumber}`);
+              console.log(`  carrierName: ${sim.carrierName}`);
+              console.log(`  isReady: ${sim.isReady}`);
+              console.log(`  isActive: ${sim.isActive}`);
+              console.log(`  countryIso: ${sim.countryIso}`);
+              console.log(`  mcc/mnc: ${sim.mcc}/${sim.mnc}`);
+            });
+            setAvailableSims(sims);
+            setSelectedSim(sims[0]);
+          } else {
+            console.warn('⚠️ No SIMs found, setting empty array');
+            setAvailableSims([]);
+          }
+        } catch (simError) {
+          console.error('❌ Error getting available SIMs:', simError);
+          setAvailableSims([]);
         }
       }
 
@@ -216,26 +237,38 @@ const SmsExample = ({ visible, onClose }) => {
                 <Text style={styles.errorText}>No SIM cards detected</Text>
               ) : (
                 <View style={styles.simGrid}>
-                  {availableSims.map((sim) => (
-                    <TouchableOpacity
-                      key={sim.id}
-                      style={[
-                        styles.simCard,
-                        selectedSim?.id === sim.id && styles.simCardSelected,
-                      ]}
-                      onPress={() => setSelectedSim(sim)}
-                    >
-                      <View style={styles.simCardContent}>
-                        <Text
-                          style={[
-                            styles.simCardTitle,
-                            selectedSim?.id === sim.id &&
-                              styles.simCardTitleSelected,
-                          ]}
-                        >
-                          {sim.name}
-                        </Text>
-                        {sim.phoneNumber && (
+                  {availableSims.map((sim) => {
+                    const displayCarrier = sim.carrierName || sim.name || `SIM ${sim.id + 1}`;
+                    const displayPhone = sim.phoneNumber || 'No number assigned';
+                    
+                    return (
+                      <TouchableOpacity
+                        key={sim.id}
+                        style={[
+                          styles.simCard,
+                          selectedSim?.id === sim.id && styles.simCardSelected,
+                        ]}
+                        onPress={() => {
+                          console.log('Selected SIM:', { 
+                            id: sim.id, 
+                            name: displayCarrier, 
+                            phone: displayPhone,
+                            carrierName: sim.carrierName,
+                            fullSim: sim
+                          });
+                          setSelectedSim(sim);
+                        }}
+                      >
+                        <View style={styles.simCardContent}>
+                          <Text
+                            style={[
+                              styles.simCardTitle,
+                              selectedSim?.id === sim.id &&
+                                styles.simCardTitleSelected,
+                            ]}
+                          >
+                            {displayCarrier}
+                          </Text>
                           <Text
                             style={[
                               styles.simCardPhone,
@@ -243,26 +276,15 @@ const SmsExample = ({ visible, onClose }) => {
                                 styles.simCardPhoneSelected,
                             ]}
                           >
-                            {sim.phoneNumber}
+                            {displayPhone}
                           </Text>
+                        </View>
+                        {selectedSim?.id === sim.id && (
+                          <Text style={styles.checkmark}>✓</Text>
                         )}
-                        {sim.carrierName && (
-                          <Text
-                            style={[
-                              styles.simCardCarrier,
-                              selectedSim?.id === sim.id &&
-                                styles.simCardCarrierSelected,
-                            ]}
-                          >
-                            {sim.carrierName}
-                          </Text>
-                        )}
-                      </View>
-                      {selectedSim?.id === sim.id && (
-                        <Text style={styles.checkmark}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
             </View>
