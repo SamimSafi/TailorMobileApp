@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
+import { CheckCircle, ChevronLeft, Share2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -10,11 +9,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import InvoiceForm from '../components/InvoiceForm';
+import ModernBadge from '../components/ui/ModernBadge';
+import ModernButton from '../components/ui/ModernButton';
+import ModernModal from '../components/ui/ModernModal';
 import { useCustomerStore } from '../store/customerStore';
 import { useInvoiceStore } from '../store/invoiceStore';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
 import { formatCurrency } from '../utils/formatters';
+import { toastError, toastSuccess } from '../utils/toastManager';
 
 const CreateInvoiceScreen = ({ navigation, route }) => {
   const { customer, qadAndam } = route.params;
@@ -41,14 +43,14 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
       const qadAndamId = qadAndam.id || qadAndam._id || qadAndam.qadAndamId;
       
       if (!customerId || !qadAndamId) {
-        Alert.alert('Error', 'Missing customer or QAD Andam ID');
+        toastError('Missing customer or QAD Andam ID');
         return;
       }
       
       await invoiceStore.submitInvoice(customerId, qadAndamId);
       setSuccessModalVisible(true);
     } catch (error) {
-      Alert.alert('Error', error.message || invoiceStore.error || 'Failed to create invoice');
+      toastError(error.message || invoiceStore.error || 'Failed to create invoice');
     }
   };
 
@@ -59,98 +61,132 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
   };
 
   const handleShare = () => {
-    // Implement share functionality
-    Alert.alert('Share', 'Invoice sharing functionality coming soon');
+    toastSuccess('Invoice sharing functionality coming soon!');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Invoice</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.customerSection}>
-        <View style={styles.customerBadge}>
-          <Ionicons name="person" size={16} color={colors.primary} />
-          <Text style={styles.customerText}>{customer.customerName}</Text>
-        </View>
-        {qadAndam && (
-          <View style={styles.qadBadge}>
-            <Ionicons name="shirt" size={16} color={colors.secondary} />
-            <Text style={styles.qadText}>{qadAndam.qadAndamType}</Text>
+      {/* Header */}
+      <View style={[styles.header, shadows.medium]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <ChevronLeft size={24} color={modernTheme.white} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Create Invoice</Text>
+            <Text style={styles.headerSubtitle}>Fill in the invoice details</Text>
           </View>
-        )}
+        </View>
       </View>
 
-      <InvoiceForm
-        invoiceData={invoiceStore.invoiceData}
-        onFieldChange={(field, value) =>
-          invoiceStore.setInvoiceField(field, value)
-        }
-        onSubmit={handleSubmit}
-        loading={invoiceStore.loading}
-      />
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Customer Info Section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Invoice Details</Text>
+          <View style={styles.badgesContainer}>
+            <ModernBadge 
+              text={customer.customerName}
+              variant="primary"
+              size="lg"
+            />
+            {qadAndam && (
+              <ModernBadge 
+                text={qadAndam.qadAndamType}
+                variant="secondary"
+                size="lg"
+              />
+            )}
+          </View>
+        </View>
+
+        {/* Invoice Form */}
+        <View style={styles.formSection}>
+          <InvoiceForm
+            invoiceData={invoiceStore.invoiceData}
+            onFieldChange={(field, value) =>
+              invoiceStore.setInvoiceField(field, value)
+            }
+            onSubmit={handleSubmit}
+            loading={invoiceStore.loading}
+          />
+        </View>
+
+        {/* Submit Button */}
+        <View style={styles.buttonContainer}>
+          <ModernButton
+            text={invoiceStore.loading ? "Creating Invoice..." : "Create Invoice"}
+            onPress={handleSubmit}
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={invoiceStore.loading}
+            disabled={invoiceStore.loading}
+          />
+        </View>
+      </ScrollView>
 
       {/* Success Modal */}
-      <Modal
+      <ModernModal
         visible={successModalVisible}
-        transparent
-        animationType="fade"
+        onClose={handleCloseSuccess}
+        title="🎉 Invoice Created!"
+        subtitle="Your invoice has been successfully created"
+        size="md"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.successModal}>
+        {invoiceStore.createdInvoice && (
+          <View style={styles.successContent}>
             <View style={styles.successIcon}>
-              <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+              <CheckCircle size={64} color={modernTheme.success} />
             </View>
 
-            <Text style={styles.successTitle}>Invoice Created!</Text>
-
-            {invoiceStore.createdInvoice && (
-              <View style={styles.invoiceDetails}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Invoice Number:</Text>
-                  <Text style={styles.detailValue}>
-                    {invoiceStore.createdInvoice.invoiceNumber}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Total Amount:</Text>
-                  <Text style={styles.detailValue}>
-                    {formatCurrency(invoiceStore.createdInvoice.totalAmount)}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Paid Amount:</Text>
-                  <Text style={styles.detailValue}>
-                    {formatCurrency(invoiceStore.createdInvoice.paidAmount)}
-                  </Text>
-                </View>
+            <View style={styles.invoiceDetails}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Invoice Number</Text>
+                <Text style={styles.detailValue}>
+                  {invoiceStore.createdInvoice.invoiceNumber}
+                </Text>
               </View>
-            )}
+              <View style={[styles.detailRow, styles.detailRowBorder]}>
+                <Text style={styles.detailLabel}>Total Amount</Text>
+                <Text style={[styles.detailValue, { color: modernTheme.success }]}>
+                  {formatCurrency(invoiceStore.createdInvoice.totalAmount)}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Paid Amount</Text>
+                <Text style={styles.detailValue}>
+                  {formatCurrency(invoiceStore.createdInvoice.paidAmount)}
+                </Text>
+              </View>
+            </View>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.shareButton}
+            <View style={styles.modalButtonContainer}>
+              <ModernButton
+                text="Share"
                 onPress={handleShare}
-              >
-                <Ionicons name="share-social" size={20} color={colors.primary} />
-                <Text style={styles.shareButtonText}>Share</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.closeButton}
+                variant="outline"
+                size="md"
+                icon={Share2}
+                fullWidth
+              />
+              <ModernButton
+                text="Done"
                 onPress={handleCloseSuccess}
-              >
-                <Text style={styles.closeButtonText}>Done</Text>
-              </TouchableOpacity>
+                variant="primary"
+                size="md"
+                fullWidth
+              />
             </View>
           </View>
-        </View>
-      </Modal>
+        )}
+      </ModernModal>
     </SafeAreaView>
   );
 };
@@ -158,138 +194,96 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: modernTheme.background,
   },
   header: {
+    backgroundColor: modernTheme.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  customerSection: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
     gap: spacing.md,
   },
-  customerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    gap: spacing.sm,
+  backButton: {
+    padding: spacing.xs,
   },
-  customerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  headerTitle: {
+    ...typography.headlineMedium,
+    color: modernTheme.white,
   },
-  qadBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-    gap: spacing.sm,
+  headerSubtitle: {
+    ...typography.bodySmall,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: spacing.xs,
   },
-  qadText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.secondary,
-  },
-  modalOverlay: {
+  content: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
   },
-  successModal: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: spacing.lg,
-    alignItems: 'center',
-    width: '100%',
+  contentContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
-  successIcon: {
+  infoSection: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    ...typography.headlineSmall,
+    color: modernTheme.text,
     marginBottom: spacing.md,
   },
-  successTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.success,
+  badgesContainer: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  formSection: {
+    marginBottom: spacing.lg,
+  },
+  buttonContainer: {
+    marginVertical: spacing.lg,
+  },
+  successContent: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  successIcon: {
     marginBottom: spacing.lg,
   },
   invoiceDetails: {
     width: '100%',
-    backgroundColor: colors.lightGray,
-    borderRadius: 8,
-    padding: spacing.md,
+    backgroundColor: modernTheme.background,
+    borderRadius: 12,
+    padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  detailRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: modernTheme.divider,
+    marginBottom: spacing.md,
   },
   detailLabel: {
-    fontSize: 14,
-    color: colors.darkGray,
-    fontWeight: '500',
+    ...typography.bodySmall,
+    color: modernTheme.textSecondary,
+    fontWeight: '600',
   },
   detailValue: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
+    ...typography.bodyMedium,
+    color: modernTheme.text,
+    fontWeight: '700',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: spacing.md,
+  modalButtonContainer: {
     width: '100%',
-  },
-  shareButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  shareButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  closeButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    paddingVertical: spacing.md,
-  },
-  closeButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+    gap: spacing.md,
   },
 });
 

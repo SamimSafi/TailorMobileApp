@@ -1,9 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { ChevronLeft, FileText, Mail, Plus, RefreshCw, Shirt } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,10 +14,15 @@ import InvoiceList from '../components/InvoiceList';
 import PaymentModal from '../components/PaymentModal';
 import QadAndamList from '../components/QadAndamList';
 import SmsExample from '../components/SmsExample';
+import ModernBadge from '../components/ui/ModernBadge';
+import ModernButton from '../components/ui/ModernButton';
+import ModernCard from '../components/ui/ModernCard';
+import ModernEmptyState from '../components/ui/ModernEmptyState';
+import ModernLoading from '../components/ui/ModernLoading';
 import { useCustomerStore } from '../store/customerStore';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
 import { formatCurrency, formatPhoneNumber } from '../utils/formatters';
+import { toastError, toastSuccess } from '../utils/toastManager';
 
 const CustomerDetailsScreen = ({ navigation, route }) => {
   const customer = useCustomerStore((state) => state.selectedCustomer);
@@ -96,9 +99,9 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
         notes: paymentData.notes || '',
       });
 
-      Alert.alert('Success', 'Payment recorded successfully');
+      toastSuccess('Payment recorded successfully');
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to record payment');
+      toastError(error.message || 'Failed to record payment');
       throw error;
     }
   };
@@ -106,9 +109,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   if (!customer) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ModernLoading visible={true} message="Loading customer..." />
       </SafeAreaView>
     );
   }
@@ -126,133 +127,118 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer Details</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setSmsModalVisible(true)}
+      {/* Header */}
+      <View style={[styles.header, shadows.medium]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <Ionicons name="mail" size={24} color={colors.white} />
+            <ChevronLeft size={24} color={modernTheme.white} />
           </TouchableOpacity>
-          <TouchableOpacity
-            disabled={loading || !customerId}
-            onPress={() => {
-              if (!customerId) {
-                return;
-              }
-
-              refreshCustomerData(customerId)
-                .catch((err) => {
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Customer Details</Text>
+            <Text style={styles.headerSubtitle}>View & manage customer info</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => setSmsModalVisible(true)}
+            >
+              <Mail size={24} color={modernTheme.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={loading || !customerId}
+              onPress={() => {
+                if (!customerId) {
+                  return;
+                }
+                refreshCustomerData(customerId).catch((err) => {
                   console.error('Failed to refresh customer data:', err);
                 });
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Ionicons name="refresh" size={24} color={colors.white} />
-            )}
-          </TouchableOpacity>
+              }}
+            >
+              <RefreshCw 
+                size={24} 
+                color={modernTheme.white}
+                style={loading ? styles.spinning : {}}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Customer Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.customerCardContainer}>
+          <ModernCard
+            title={customer.customerName}
+            subtitle={formatPhoneNumber(customer.phoneNumber)}
+            description={customer.address}
+            variant="elevated"
+          >
+            <View style={styles.customerInfoContent}>
+              {customer.serialNumber && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Serial Number:</Text>
+                  <Text style={styles.infoValue}>{customer.serialNumber}</Text>
+                </View>
+              )}
             </View>
-          </View>
+          </ModernCard>
+        </View>
 
-          <View style={styles.customerInfo}>
-            <Text style={styles.customerName}>{customer.customerName}</Text>
-            <View style={styles.infoRow}>
-              <Ionicons name="call" size={16} color={colors.primary} />
-              <Text style={styles.infoText}>
-                {formatPhoneNumber(customer.phoneNumber)}
+        {/* Stats Cards - Balance, Due, Invoices */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCardWrapper}>
+            <View style={[styles.statCard, { borderLeftColor: modernTheme.success }]}>
+              <Text style={styles.statLabel}>Balance</Text>
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color: balance >= 0 ? modernTheme.success : modernTheme.error,
+                  },
+                ]}
+              >
+                {formatCurrency(balance)}
               </Text>
             </View>
-            {customer.address && (
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color={colors.primary} />
-                <Text style={styles.infoText}>{customer.address}</Text>
-              </View>
-            )}
-            {customer.serialNumber && (
-              <View style={styles.infoRow}>
-                <Ionicons name="barcode" size={16} color={colors.primary} />
-                <Text style={styles.infoText}>{customer.serialNumber}</Text>
-              </View>
-            )}
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <View style={[styles.statCard, { borderLeftColor: totalDue > 0 ? modernTheme.error : modernTheme.success }]}>
+              <Text style={styles.statLabel}>Total Due</Text>
+              <Text
+                style={[
+                  styles.statValue,
+                  { color: totalDue > 0 ? modernTheme.error : modernTheme.success },
+                ]}
+              >
+                {formatCurrency(totalDue)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <View style={[styles.statCard, { borderLeftColor: modernTheme.primary }]}>
+              <Text style={styles.statLabel}>Invoices</Text>
+              <Text style={[styles.statValue, { color: modernTheme.primary }]}>
+                {invoices.length}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Balance & Due Card */}
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name="wallet-outline" size={20} color={colors.primary} />
-            </View>
-            <Text style={styles.statLabel}>Balance</Text>
-            <Text
-              style={[
-                styles.statValue,
-                {
-                  color: balance >= 0 ? colors.success : colors.error,
-                },
-              ]}
-            >
-              {formatCurrency(balance)}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons
-                name={totalDue > 0 ? 'alert-circle-outline' : 'checkmark-circle-outline'}
-                size={20}
-                color={totalDue > 0 ? colors.error : colors.success}
-              />
-            </View>
-            <Text style={styles.statLabel}>Total Due</Text>
-            <Text
-              style={[
-                styles.statValue,
-                { color: totalDue > 0 ? colors.error : colors.success },
-              ]}
-            >
-              {formatCurrency(totalDue)}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name="document-text-outline" size={20} color={colors.secondary} />
-            </View>
-            <Text style={styles.statLabel}>Invoices</Text>
-            <Text style={styles.statValue}>{invoices.length}</Text>
-          </View>
-        </View>
-
-        {/* Tabs */}
+        {/* Tabs - Modern Style */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'items' && styles.tabActive]}
             onPress={() => setActiveTab('items')}
           >
-            <Ionicons
-              name="shirt-outline"
+            <Shirt
               size={18}
-              color={activeTab === 'items' ? colors.primary : colors.darkGray}
+              color={activeTab === 'items' ? modernTheme.primary : modernTheme.textSecondary}
             />
             <Text
               style={[
@@ -260,28 +246,22 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                 activeTab === 'items' && styles.tabTextActive,
               ]}
             >
-              QAD Andams
+              Measurements
             </Text>
-            <View
-              style={[
-                styles.tabBadge,
-                activeTab === 'items' && styles.tabBadgeActive,
-              ]}
-            >
-              <Text style={styles.tabBadgeText}>
-                {qadAndams.length}
-              </Text>
-            </View>
+            <ModernBadge 
+              text={qadAndams.length.toString()}
+              variant={activeTab === 'items' ? 'primary' : 'secondary'}
+              size="sm"
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.tab, activeTab === 'invoices' && styles.tabActive]}
             onPress={() => setActiveTab('invoices')}
           >
-            <Ionicons
-              name="receipt-outline"
+            <FileText
               size={18}
-              color={activeTab === 'invoices' ? colors.primary : colors.darkGray}
+              color={activeTab === 'invoices' ? modernTheme.primary : modernTheme.textSecondary}
             />
             <Text
               style={[
@@ -291,41 +271,28 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
             >
               Invoices
             </Text>
-            <View
-              style={[
-                styles.tabBadge,
-                activeTab === 'invoices' && styles.tabBadgeActive,
-              ]}
-            >
-              <Text style={styles.tabBadgeText}>
-                {invoices.length}
-              </Text>
-            </View>
+            <ModernBadge 
+              text={invoices.length.toString()}
+              variant={activeTab === 'invoices' ? 'primary' : 'secondary'}
+              size="sm"
+            />
           </TouchableOpacity>
         </View>
 
         {/* Tab Content */}
         <View style={styles.tabContent}>
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            <ModernLoading visible={true} message="Loading data..." />
           ) : activeTab === 'items' ? (
             <>
               {qadAndams.length === 0 ? (
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons name="shirt-outline" size={48} color={colors.lightGray} />
-                  <Text style={styles.emptyStateText}>No measurements registered yet</Text>
-                  <TouchableOpacity
-                    style={styles.addQadAndamButton}
-                    onPress={() => setAddQadAndamModalVisible(true)}
-                  >
-                    <Ionicons name="add-circle" size={20} color={colors.white} />
-                    <Text style={styles.addQadAndamButtonText}>
-                      Register Measurement
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <ModernEmptyState
+                  icon={<Shirt color={modernTheme.textTertiary} size={48} />}
+                  title="No Measurements"
+                  description="Register your first measurement to get started"
+                  actionText="Register Measurement"
+                  onActionPress={() => setAddQadAndamModalVisible(true)}
+                />
               ) : (
                 <>
                   <QadAndamList
@@ -333,29 +300,29 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                     loading={false}
                     onSelectQadAndam={handleSelectQadAndam}
                   />
-                  <TouchableOpacity
-                    style={styles.createInvoiceButton}
-                    onPress={() => {
-                      navigation.navigate('CreateInvoice', {
-                        customer,
-                        qadAndam: null,
-                      });
-                    }}
-                  >
-                    <Ionicons name="add-circle" size={20} color={colors.white} />
-                    <Text style={styles.createInvoiceButtonText}>
-                      Create Invoice
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.addQadAndamButton}
-                    onPress={() => setAddQadAndamModalVisible(true)}
-                  >
-                    <Ionicons name="add-circle" size={20} color={colors.white} />
-                    <Text style={styles.addQadAndamButtonText}>
-                      Add Another Measurement
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.buttonGroup}>
+                    <ModernButton
+                      text="Create Invoice"
+                      icon={Plus}
+                      variant="primary"
+                      size="md"
+                      fullWidth
+                      onPress={() => {
+                        navigation.navigate('CreateInvoice', {
+                          customer,
+                          qadAndam: null,
+                        });
+                      }}
+                    />
+                    <ModernButton
+                      text="Add Measurement"
+                      icon={Plus}
+                      variant="secondary"
+                      size="md"
+                      fullWidth
+                      onPress={() => setAddQadAndamModalVisible(true)}
+                    />
+                  </View>
                 </>
               )}
             </>
@@ -405,20 +372,31 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: modernTheme.background,
   },
   header: {
+    backgroundColor: modernTheme.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
+    gap: spacing.md,
+  },
+  backButton: {
+    padding: spacing.xs,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
+    ...typography.headlineMedium,
+    color: modernTheme.white,
+  },
+  headerSubtitle: {
+    ...typography.bodySmall,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: spacing.xs,
   },
   headerActions: {
     flexDirection: 'row',
@@ -428,111 +406,69 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: spacing.xs,
   },
+  spinning: {
+    transform: [{ rotate: '45deg' }],
+  },
   content: {
     flex: 1,
-    paddingBottom: spacing.md,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  customerCardContainer: {
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
   },
-  infoCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-    borderRadius: 8,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  avatarContainer: {
-    marginRight: spacing.md,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  customerInfo: {
-    flex: 1,
-  },
-  customerName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.md,
+  customerInfoContent: {
+    marginTop: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.darkGray,
-    flex: 1,
-  },
-  statsCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: spacing.sm,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
+  infoLabel: {
+    ...typography.bodySmall,
+    color: modernTheme.textSecondary,
+    fontWeight: '600',
   },
-  statIcon: {
-    marginBottom: spacing.sm,
+  infoValue: {
+    ...typography.bodySmall,
+    color: modernTheme.text,
+    fontWeight: '700',
+  },
+  statsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  statCardWrapper: {
+    marginBottom: spacing.md,
+  },
+  statCard: {
+    backgroundColor: modernTheme.white,
+    borderLeftWidth: 4,
+    borderRadius: 12,
+    padding: spacing.lg,
+    ...shadows.small,
   },
   statLabel: {
-    fontSize: 12,
-    color: colors.darkGray,
+    ...typography.bodySmall,
+    color: modernTheme.textSecondary,
     marginBottom: spacing.xs,
+    fontWeight: '600',
   },
   statValue: {
-    fontSize: 15,
+    ...typography.headlineMedium,
     fontWeight: '700',
-    color: colors.text,
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.sm,
   },
   tabsContainer: {
     flexDirection: 'row',
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-    backgroundColor: colors.white,
-    borderRadius: 8,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.lg,
+    backgroundColor: modernTheme.white,
+    borderRadius: 12,
     padding: spacing.sm,
     gap: spacing.sm,
+    ...shadows.small,
   },
   tab: {
     flex: 1,
@@ -541,84 +477,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.md,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 8,
+    backgroundColor: modernTheme.background,
   },
   tabActive: {
-    backgroundColor: colors.primary + '10',
-    borderColor: colors.primary,
+    backgroundColor: modernTheme.primary,
   },
   tabText: {
-    fontSize: 13,
+    ...typography.bodySmall,
+    color: modernTheme.textSecondary,
     fontWeight: '600',
-    color: colors.darkGray,
+    fontSize: 12,
   },
   tabTextActive: {
-    color: colors.primary,
-  },
-  tabBadge: {
-    backgroundColor: colors.lightGray,
-    borderRadius: 10,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    minWidth: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabBadgeActive: {
-    backgroundColor: colors.primary,
-  },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
+    color: modernTheme.white,
   },
   tabContent: {
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-  },
-  createInvoiceButton: {
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  createInvoiceButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.md,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: colors.darkGray,
-    textAlign: 'center',
-  },
-  addQadAndamButton: {
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    paddingVertical: spacing.lg,
+    minHeight: 200,
   },
-  addQadAndamButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+  buttonGroup: {
+    gap: spacing.md,
+    marginTop: spacing.lg,
   },
 });
 

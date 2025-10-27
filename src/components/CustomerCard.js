@@ -1,12 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronRight, Mail } from 'lucide-react-native';
 import {
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
 import { formatCurrency, formatPhoneNumber } from '../utils/formatters';
 
 const CustomerCard = ({ customer, onPress, onMessage }) => {
@@ -17,13 +16,15 @@ const CustomerCard = ({ customer, onPress, onMessage }) => {
     .toUpperCase() || 'C';
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={[styles.container, shadows.small]} onPress={onPress}>
+      {/* Avatar */}
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
       </View>
 
+      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.name}>{customer.customerName}</Text>
         <Text style={styles.phone}>
@@ -36,6 +37,7 @@ const CustomerCard = ({ customer, onPress, onMessage }) => {
         )}
       </View>
 
+      {/* Right Section - Balance & Actions */}
       <View style={styles.rightContent}>
         {customer.balance !== undefined && (
           <View style={styles.balanceContainer}>
@@ -44,7 +46,7 @@ const CustomerCard = ({ customer, onPress, onMessage }) => {
               style={[
                 styles.balance,
                 {
-                  color: customer.balance > 0 ? colors.success : colors.error,
+                  color: customer.balance > 0 ? modernTheme.success : modernTheme.error,
                 },
               ]}
             >
@@ -52,25 +54,26 @@ const CustomerCard = ({ customer, onPress, onMessage }) => {
             </Text>
           </View>
         )}
+        
+        {/* Action Buttons */}
         <View style={styles.actionButtons}>
           {onMessage && (
             <TouchableOpacity 
               style={styles.messageButton}
               onPress={() => onMessage(customer)}
             >
-              <Ionicons
-                name="mail-outline"
+              <Mail
                 size={20}
-                color={colors.primary}
+                color={modernTheme.primary}
               />
             </TouchableOpacity>
           )}
-          <Ionicons
-            name="chevron-forward"
-            size={24}
-            color={colors.primary}
-            style={styles.chevron}
-          />
+          <View style={styles.chevronContainer}>
+            <ChevronRight
+              size={20}
+              color={modernTheme.primary}
+            />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -81,48 +84,48 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.sm,
+    backgroundColor: modernTheme.white,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    marginHorizontal: 0,
+    marginVertical: 0,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: modernTheme.divider,
   },
   avatarContainer: {
     marginRight: spacing.md,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: modernTheme.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    color: colors.white,
+    color: modernTheme.white,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   content: {
     flex: 1,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
+    ...typography.bodyLarge,
+    color: modernTheme.text,
     marginBottom: spacing.xs,
+    fontWeight: '600',
   },
   phone: {
-    fontSize: 14,
-    color: colors.darkGray,
+    ...typography.bodySmall,
+    color: modernTheme.textSecondary,
     marginBottom: spacing.xs,
   },
   address: {
-    fontSize: 12,
-    color: colors.darkGray,
+    ...typography.bodySmall,
+    color: modernTheme.textTertiary,
   },
   rightContent: {
     alignItems: 'flex-end',
@@ -133,25 +136,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   balanceLabel: {
-    fontSize: 12,
-    color: colors.darkGray,
-    marginBottom: spacing.xs,
+    ...typography.labelSmall,
+    color: modernTheme.textSecondary,
+    marginBottom: 2,
+    fontWeight: '600',
   },
   balance: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.labelLarge,
+    fontWeight: '700',
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   messageButton: {
     padding: spacing.xs,
-    marginRight: spacing.xs,
   },
-  chevron: {
-    marginTop: spacing.sm,
+  chevronContainer: {
+    padding: spacing.xs,
   },
 });
 
