@@ -1,12 +1,12 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, FileText, Mail, Plus, RefreshCw, Shirt } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddQadAndamModal from '../components/AddQadAndamModal';
@@ -15,14 +15,16 @@ import PaymentModal from '../components/PaymentModal';
 import QadAndamList from '../components/QadAndamList';
 import SmsExample from '../components/SmsExample';
 import ModernBadge from '../components/ui/ModernBadge';
-import ModernButton from '../components/ui/ModernButton';
+import ModernButtonEnhanced from '../components/ui/ModernButtonEnhanced';
 import ModernCard from '../components/ui/ModernCard';
 import ModernEmptyState from '../components/ui/ModernEmptyState';
 import ModernLoading from '../components/ui/ModernLoading';
+import QadAndamReceiptModal from '../components/QadAndamReceiptModal';
 import { useCustomerStore } from '../store/customerStore';
-import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { formatCurrency, formatPhoneNumber } from '../utils/formatters';
 import { toastError, toastSuccess } from '../utils/toastManager';
+import businessInfo from '../constants/businessInfo';
 
 const CustomerDetailsScreen = ({ navigation, route }) => {
   const customer = useCustomerStore((state) => state.selectedCustomer);
@@ -40,6 +42,8 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [smsModalVisible, setSmsModalVisible] = useState(false);
   const [addQadAndamModalVisible, setAddQadAndamModalVisible] = useState(false);
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [selectedReceiptQadAndam, setSelectedReceiptQadAndam] = useState(null);
   const customerId = customer?.customerId;
 
   // Reload data when screen is focused
@@ -59,6 +63,10 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
       // No cleanup on unfocus - let data persist
     }, [customerId, refreshCustomerData])
   );
+
+  // Handle Android back button - using React Navigation's built-in support
+  // Note: useFocusEffect already handles data refresh, and React Navigation
+  // handles back button navigation automatically on Android
 
   // Clear customer data only on unmount
   useEffect(() => {
@@ -125,27 +133,60 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
     return sum + (dueAmount > 0 ? dueAmount : 0);
   }, 0);
 
+  const primaryContact = customer.phoneNumber || customer.phone || customer.whatsapp;
+
+  const customerAtAGlance = useMemo(
+    () => [
+      {
+        label: 'Serial',
+        value: customer.serialNumber || customer.serial || '—',
+      },
+      {
+        label: 'Phone',
+        value: formatPhoneNumber(primaryContact) || '—',
+      },
+      {
+        label: 'Address',
+        value: customer.address || '—',
+      },
+      {
+        label: 'Invoices',
+        value: invoices.length.toString(),
+      },
+      {
+        label: 'Measurements',
+        value: qadAndams.length.toString(),
+      },
+    ],
+    [customer, primaryContact, invoices.length, qadAndams.length]
+  );
+
+  const handleViewReceipt = (qadAndam) => {
+    setSelectedReceiptQadAndam(qadAndam);
+    setReceiptModalVisible(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, shadows.medium]}>
+      <View style={[styles.header, { backgroundColor: enhancedTheme.colors.primary, ...enhancedTheme.shadows.lg }]}>
         <View style={styles.headerContent}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <ChevronLeft size={24} color={modernTheme.white} />
+            <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Customer Details</Text>
-            <Text style={styles.headerSubtitle}>View & manage customer info</Text>
+            <Text style={[styles.headerTitle, { color: '#ffffff' }]}>Customer Details</Text>
+            <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>View & manage customer info</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => setSmsModalVisible(true)}
             >
-              <Mail size={24} color={modernTheme.white} />
+              <Mail size={24} color="#ffffff" />
             </TouchableOpacity>
             <TouchableOpacity
               disabled={loading || !customerId}
@@ -160,7 +201,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
             >
               <RefreshCw 
                 size={24} 
-                color={modernTheme.white}
+                color="#ffffff"
                 style={loading ? styles.spinning : {}}
               />
             </TouchableOpacity>
@@ -170,63 +211,55 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Customer Info Card */}
-        <View style={styles.customerCardContainer}>
-          <ModernCard
-            title={customer.customerName}
-            subtitle={formatPhoneNumber(customer.phoneNumber)}
-            description={customer.address}
-            variant="elevated"
-          >
-            <View style={styles.customerInfoContent}>
-              {customer.serialNumber && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Serial Number:</Text>
-                  <Text style={styles.infoValue}>{customer.serialNumber}</Text>
-                </View>
-              )}
-            </View>
-          </ModernCard>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>{customer.customerName}</Text>
+          <Text style={styles.summarySubtitle}>
+            {formatPhoneNumber(customer.phoneNumber) || 'No phone'}
+          </Text>
+
+          <View style={styles.summaryGrid}>
+            {customerAtAGlance.map(({ label, value }) => (
+              <View key={label} style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>{label}</Text>
+                <Text style={styles.summaryValue} numberOfLines={2}>
+                  {value}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
-        {/* Stats Cards - Balance, Due, Invoices */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCardWrapper}>
-            <View style={[styles.statCard, { borderLeftColor: modernTheme.success }]}>
-              <Text style={styles.statLabel}>Balance</Text>
-              <Text
-                style={[
-                  styles.statValue,
-                  {
-                    color: balance >= 0 ? modernTheme.success : modernTheme.error,
-                  },
-                ]}
-              >
-                {formatCurrency(balance)}
-              </Text>
-            </View>
+        {/* Stats Chips */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statChip, { borderColor: enhancedTheme.colors.success }]}>
+            <Text style={styles.statChipLabel}>Balance</Text>
+            <Text
+              style={[
+                styles.statChipValue,
+                { color: balance >= 0 ? enhancedTheme.colors.success : enhancedTheme.colors.error },
+              ]}
+            >
+              {formatCurrency(balance)}
+            </Text>
           </View>
 
-          <View style={styles.statCardWrapper}>
-            <View style={[styles.statCard, { borderLeftColor: totalDue > 0 ? modernTheme.error : modernTheme.success }]}>
-              <Text style={styles.statLabel}>Total Due</Text>
-              <Text
-                style={[
-                  styles.statValue,
-                  { color: totalDue > 0 ? modernTheme.error : modernTheme.success },
-                ]}
-              >
-                {formatCurrency(totalDue)}
-              </Text>
-            </View>
+          <View style={[styles.statChip, { borderColor: totalDue > 0 ? enhancedTheme.colors.error : enhancedTheme.colors.success }]}>
+            <Text style={styles.statChipLabel}>Total Due</Text>
+            <Text
+              style={[
+                styles.statChipValue,
+                { color: totalDue > 0 ? enhancedTheme.colors.error : enhancedTheme.colors.success },
+              ]}
+            >
+              {formatCurrency(totalDue)}
+            </Text>
           </View>
 
-          <View style={styles.statCardWrapper}>
-            <View style={[styles.statCard, { borderLeftColor: modernTheme.primary }]}>
-              <Text style={styles.statLabel}>Invoices</Text>
-              <Text style={[styles.statValue, { color: modernTheme.primary }]}>
-                {invoices.length}
-              </Text>
-            </View>
+          <View style={[styles.statChip, { borderColor: enhancedTheme.colors.primary }]}>
+            <Text style={styles.statChipLabel}>Invoices</Text>
+            <Text style={[styles.statChipValue, { color: enhancedTheme.colors.primary }]}>
+              {invoices.length}
+            </Text>
           </View>
         </View>
 
@@ -238,7 +271,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           >
             <Shirt
               size={18}
-              color={activeTab === 'items' ? modernTheme.primary : modernTheme.textSecondary}
+              color={activeTab === 'items' ? enhancedTheme.colors.primary : enhancedTheme.colors.neutral500}
             />
             <Text
               style={[
@@ -261,7 +294,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           >
             <FileText
               size={18}
-              color={activeTab === 'invoices' ? modernTheme.primary : modernTheme.textSecondary}
+              color={activeTab === 'invoices' ? enhancedTheme.colors.primary : enhancedTheme.colors.neutral500}
             />
             <Text
               style={[
@@ -287,7 +320,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
             <>
               {qadAndams.length === 0 ? (
                 <ModernEmptyState
-                  icon={<Shirt color={modernTheme.textTertiary} size={48} />}
+                  icon={<Shirt color={enhancedTheme.colors.neutral400} size={48} />}
                   title="No Measurements"
                   description="Register your first measurement to get started"
                   actionText="Register Measurement"
@@ -299,13 +332,14 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                     qadAndams={qadAndams}
                     loading={false}
                     onSelectQadAndam={handleSelectQadAndam}
+                    onViewReceipt={handleViewReceipt}
                   />
                   <View style={styles.buttonGroup}>
-                    <ModernButton
-                      text="Create Invoice"
+                    <ModernButtonEnhanced
+                      title="Create Invoice"
                       icon={Plus}
                       variant="primary"
-                      size="md"
+                      size="lg"
                       fullWidth
                       onPress={() => {
                         navigation.navigate('CreateInvoice', {
@@ -314,11 +348,11 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                         });
                       }}
                     />
-                    <ModernButton
-                      text="Add Measurement"
+                    <ModernButtonEnhanced
+                      title="Add Measurement"
                       icon={Plus}
                       variant="secondary"
-                      size="md"
+                      size="lg"
                       fullWidth
                       onPress={() => setAddQadAndamModalVisible(true)}
                     />
@@ -365,6 +399,18 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           }
         }}
       />
+
+      <QadAndamReceiptModal
+        visible={receiptModalVisible}
+        onClose={() => {
+          setReceiptModalVisible(false);
+          setSelectedReceiptQadAndam(null);
+        }}
+        qadAndam={selectedReceiptQadAndam}
+        customer={customer}
+        invoice={selectedReceiptQadAndam && invoices.find((inv) => inv.qadAndamId === selectedReceiptQadAndam.id)}
+        businessInfo={businessInfo}
+      />
     </SafeAreaView>
   );
 };
@@ -372,39 +418,38 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: modernTheme.background,
+    backgroundColor: enhancedTheme.colors.background,
   },
   header: {
-    backgroundColor: modernTheme.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
+    borderBottomLeftRadius: enhancedTheme.borderRadius.lg,
+    borderBottomRightRadius: enhancedTheme.borderRadius.lg,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: enhancedTheme.spacing.md,
   },
   backButton: {
-    padding: spacing.xs,
+    padding: enhancedTheme.spacing.xs,
   },
   headerTitle: {
-    ...typography.headlineMedium,
-    color: modernTheme.white,
+    fontSize: enhancedTheme.typography.headlineMedium.fontSize,
+    fontWeight: '700',
   },
   headerSubtitle: {
-    ...typography.bodySmall,
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: spacing.xs,
+    marginTop: enhancedTheme.spacing.xs,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: enhancedTheme.spacing.md,
   },
   headerButton: {
-    padding: spacing.xs,
+    padding: enhancedTheme.spacing.xs,
   },
   spinning: {
     transform: [{ rotate: '45deg' }],
@@ -412,97 +457,118 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  customerCardContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+  summaryCard: {
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginTop: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.md,
+    padding: enhancedTheme.spacing.lg,
+    borderRadius: enhancedTheme.borderRadius.lg,
+    backgroundColor: '#ffffff',
+    ...enhancedTheme.shadows.sm,
+    gap: enhancedTheme.spacing.md,
   },
-  customerInfoContent: {
-    marginTop: spacing.md,
+  summaryTitle: {
+    fontSize: enhancedTheme.typography.headlineSmall.fontSize,
+    fontWeight: '700',
+    color: enhancedTheme.colors.neutral900,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  infoLabel: {
-    ...typography.bodySmall,
-    color: modernTheme.textSecondary,
+  summarySubtitle: {
+    fontSize: enhancedTheme.typography.bodyMedium.fontSize,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '600',
   },
-  infoValue: {
-    ...typography.bodySmall,
-    color: modernTheme.text,
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: enhancedTheme.spacing.md,
+  },
+  summaryItem: {
+    width: '47%',
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingVertical: enhancedTheme.spacing.sm,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    borderWidth: 1,
+    borderColor: enhancedTheme.colors.neutral200,
+  },
+  summaryLabel: {
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
+    color: enhancedTheme.colors.neutral600,
+    fontWeight: '600',
+    marginBottom: enhancedTheme.spacing.xs,
+  },
+  summaryValue: {
+    fontSize: enhancedTheme.typography.bodyMedium.fontSize,
+    color: enhancedTheme.colors.neutral900,
     fontWeight: '700',
   },
-  statsContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+  statsRow: {
+    flexDirection: 'row',
+    gap: enhancedTheme.spacing.md,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
-  statCardWrapper: {
-    marginBottom: spacing.md,
+  statChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingVertical: enhancedTheme.spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.sm,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    gap: enhancedTheme.spacing.xs,
+    ...enhancedTheme.shadows.sm,
   },
-  statCard: {
-    backgroundColor: modernTheme.white,
-    borderLeftWidth: 4,
-    borderRadius: 12,
-    padding: spacing.lg,
-    ...shadows.small,
-  },
-  statLabel: {
-    ...typography.bodySmall,
-    color: modernTheme.textSecondary,
-    marginBottom: spacing.xs,
+  statChipLabel: {
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '600',
   },
-  statValue: {
-    ...typography.headlineMedium,
+  statChipValue: {
+    fontSize: enhancedTheme.typography.titleMedium.fontSize,
     fontWeight: '700',
   },
   tabsContainer: {
     flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.lg,
-    backgroundColor: modernTheme.white,
-    borderRadius: 12,
-    padding: spacing.sm,
-    gap: spacing.sm,
-    ...shadows.small,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginVertical: enhancedTheme.spacing.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: enhancedTheme.borderRadius.md,
+    padding: enhancedTheme.spacing.sm,
+    gap: enhancedTheme.spacing.sm,
+    ...enhancedTheme.shadows.sm,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 8,
-    backgroundColor: modernTheme.background,
+    gap: enhancedTheme.spacing.sm,
+    paddingVertical: enhancedTheme.spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.sm,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    backgroundColor: enhancedTheme.colors.neutral100,
   },
   tabActive: {
-    backgroundColor: modernTheme.primary,
+    backgroundColor: enhancedTheme.colors.primary,
   },
   tabText: {
-    ...typography.bodySmall,
-    color: modernTheme.textSecondary,
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '600',
-    fontSize: 12,
   },
   tabTextActive: {
-    color: modernTheme.white,
+    color: '#ffffff',
   },
   tabContent: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
     minHeight: 200,
   },
   buttonGroup: {
-    gap: spacing.md,
-    marginTop: spacing.lg,
+    gap: enhancedTheme.spacing.md,
+    marginTop: enhancedTheme.spacing.lg,
   },
 });
 
 export default CustomerDetailsScreen;
-
