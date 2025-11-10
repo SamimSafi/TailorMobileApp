@@ -1,18 +1,22 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { Plus, Search } from 'lucide-react-native';
+import { Globe, Plus, Search, Zap } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { FlatList, SafeAreaView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AddCustomerModal from '../components/AddCustomerModal';
-import BarcodeScanner from '../components/BarcodeScanner';
-import CustomerCard from '../components/CustomerCard';
+import CustomerCardEnhanced from '../components/CustomerCardEnhanced';
 import SendMessageModal from '../components/SendMessageModal';
-import ModernButton from '../components/ui/ModernButton';
+import FloatingActionButton from '../components/navigation/FloatingActionButton';
+import BarcodeScannerPremium from '../components/scanner/BarcodeScannerPremium';
+import ModernButtonEnhanced from '../components/ui/ModernButtonEnhanced';
 import ModernEmptyState from '../components/ui/ModernEmptyState';
 import ModernLoading from '../components/ui/ModernLoading';
 import ModernSearchBar from '../components/ui/ModernSearchBar';
+import { useLanguage } from '../hooks/useLanguage';
+import { useResponsive } from '../hooks/useResponsive';
 import { useCustomerStore } from '../store/customerStore';
 import { useSearchStore } from '../store/searchStore';
-import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { storage } from '../utils/storage';
 import { toastError, toastInfo, toastSuccess } from '../utils/toastManager';
 import { validateSearchTerm } from '../utils/validators';
@@ -24,6 +28,12 @@ const SearchScreenModern = ({ navigation }) => {
   const [addCustomerModalVisible, setAddCustomerModalVisible] = useState(false);
   const searchStore = useSearchStore();
   const customerStore = useCustomerStore();
+  
+  // Localization
+  const { t } = useLanguage();
+  
+  // Responsive
+  const { isSmallPhone: isSmallDevice } = useResponsive();
 
   useFocusEffect(
     useCallback(() => {
@@ -33,7 +43,7 @@ const SearchScreenModern = ({ navigation }) => {
 
   const handleSearch = async () => {
     if (!validateSearchTerm(searchStore.searchTerm)) {
-      toastError('Please enter a search term', 'Invalid Input');
+      toastError(t('search.invalidInput'), t('common.error'));
       return;
     }
     await searchStore.searchCustomer(searchStore.searchTerm);
@@ -48,7 +58,7 @@ const SearchScreenModern = ({ navigation }) => {
     setScannerVisible(false);
     searchStore.setSearchTerm(data);
     await searchStore.searchCustomer(data);
-    toastInfo('Customer found from barcode scan');
+    toastInfo(t('search.foundFromBarcode'));
   };
 
   const handleSelectCustomer = async (customer) => {
@@ -60,6 +70,8 @@ const SearchScreenModern = ({ navigation }) => {
       }
       await customerStore.selectCustomer(customerId);
       navigation.navigate('CustomerDetails', { customer });
+      console.log("Navigation done");
+      
     } catch (error) {
       toastError(error.message || 'Failed to load customer details');
     }
@@ -72,10 +84,13 @@ const SearchScreenModern = ({ navigation }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.cardContainer}>
-      <CustomerCard
+      <CustomerCardEnhanced
         customer={item}
         onPress={() => handleSelectCustomer(item)}
         onMessage={handleMessageCustomer}
+        onCall={() => {
+          toastInfo(`Call: ${item.phoneNumber || 'N/A'}`);
+        }}
       />
     </View>
   );
@@ -85,8 +100,8 @@ const SearchScreenModern = ({ navigation }) => {
       return (
         <ModernLoading
           visible={true}
-          message="Searching customers..."
-          color={modernTheme.primary}
+          message={t('search.loadingResults')}
+          color={enhancedTheme.colors.primary}
         />
       );
     }
@@ -94,10 +109,10 @@ const SearchScreenModern = ({ navigation }) => {
     if (searchStore.error) {
       return (
         <ModernEmptyState
-          icon={<Search color={modernTheme.error} />}
-          title="Search Error"
+          icon={<Search color={enhancedTheme.colors.error} />}
+          title={t('common.error')}
           description={searchStore.error}
-          actionText="Try Again"
+          actionText={t('actions.retry')}
           onActionPress={() => searchStore.clearSearch()}
         />
       );
@@ -106,10 +121,10 @@ const SearchScreenModern = ({ navigation }) => {
     if (searchStore.searchResults.length === 0 && searchStore.searchTerm) {
       return (
         <ModernEmptyState
-          icon={<Search color={modernTheme.primary} />}
-          title="No Customers Found"
-          description={`No results matching "${searchStore.searchTerm}". Would you like to add a new customer?`}
-          actionText="Add New Customer"
+          icon={<Search color={enhancedTheme.colors.primary} />}
+          title={t('search.noResults')}
+          description={`${t('search.noResults')}. ${t('search.addNewCustomer')}?`}
+          actionText={t('search.addNewCustomer')}
           onActionPress={() => setAddCustomerModalVisible(true)}
         />
       );
@@ -117,17 +132,17 @@ const SearchScreenModern = ({ navigation }) => {
 
     return (
       <ModernEmptyState
-        icon={<Search color={modernTheme.textTertiary} />}
-        title="Find Your Customer"
-        description="Search by customer name or phone number to get started"
+        icon={<Search color={enhancedTheme.colors.neutral400} />}
+        title={t('search.title')}
+        description={t('search.searchPlaceholder')}
         actionButton={
-          <ModernButton
-            text="Add New Customer"
+          <ModernButtonEnhanced
+            title={t('search.addNewCustomer')}
             onPress={() => setAddCustomerModalVisible(true)}
             variant="primary"
-            size="md"
+            size="lg"
             icon={Plus}
-            fullWidth={true}
+            fullWidth
           />
         }
       />
@@ -135,29 +150,36 @@ const SearchScreenModern = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: enhancedTheme.colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, shadows.medium]}>
-        <View>
+      <View style={[styles.header, { backgroundColor: enhancedTheme.colors.primary, ...enhancedTheme.shadows.lg }]}>
+        <View style={styles.headerContent}>
           <View style={styles.headerTitle}>
-            <Search size={24} color={modernTheme.white} />
-            <View style={{ marginLeft: spacing.md }}>
-              <View style={styles.headerText}>XPOSE Tailor</View>
-              <View style={styles.headerSubtext}>Manage Your Customers</View>
+            <Zap size={24} color="#ffffff" />
+            <View style={{ marginLeft: enhancedTheme.spacing.md }}>
+              <Text style={[styles.headerText, { color: '#ffffff' }]}>ماستر خیاط</Text>
+              <Text style={[styles.headerSubtext, { color: 'rgba(255, 255, 255, 0.8)' }]}>{t('search.title')}</Text>
             </View>
           </View>
         </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('LanguageSelection')}
+          style={styles.languageButton}
+          activeOpacity={0.7}
+        >
+          <Globe size={24} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { paddingHorizontal: enhancedTheme.spacing.lg, paddingVertical: enhancedTheme.spacing.lg }]}>
         <ModernSearchBar
           value={searchStore.searchTerm}
           onChangeText={(text) => searchStore.setSearchTerm(text)}
           onSearch={handleSearch}
           onScanPress={() => setScannerVisible(true)}
           loading={searchStore.loading}
-          placeholder="Search by name or phone..."
+          placeholder={t('search.searchPlaceholder')}
           style={styles.searchBar}
         />
       </View>
@@ -168,13 +190,13 @@ const SearchScreenModern = ({ navigation }) => {
           data={searchStore.searchResults}
           renderItem={renderItem}
           keyExtractor={(item, index) => item.id || item._id || item.customerId || `customer-${index}`}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingHorizontal: enhancedTheme.spacing.md, paddingVertical: enhancedTheme.spacing.md }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={styles.resultsInfo}>
-              <View style={styles.resultCount}>
-                Found {searchStore.searchResults.length} customer{searchStore.searchResults.length !== 1 ? 's' : ''}
-              </View>
+            <View style={[styles.resultsInfo, { paddingBottom: enhancedTheme.spacing.md, borderBottomWidth: 1, borderBottomColor: enhancedTheme.colors.neutral200 }]}>
+              <Text style={[styles.resultCount, { color: enhancedTheme.colors.neutral600 }]}>
+                {t('common.search')}: {searchStore.searchResults.length}
+              </Text>
             </View>
           }
         />
@@ -183,8 +205,8 @@ const SearchScreenModern = ({ navigation }) => {
       )}
 
       {/* Modals */}
-      <BarcodeScanner
-        visible={scannerVisible}
+      <BarcodeScannerPremium
+        isVisible={scannerVisible}
         onClose={() => setScannerVisible(false)}
         onScan={handleBarcodeScan}
       />
@@ -212,6 +234,15 @@ const SearchScreenModern = ({ navigation }) => {
           }
         }}
       />
+
+      {/* Floating Action Button */}
+      <FloatingActionButton
+        onPress={() => setAddCustomerModalVisible(true)}
+        icon={Plus}
+        position="bottom-right"
+        size="large"
+        variant="primary"
+      />
     </SafeAreaView>
   );
 };
@@ -219,53 +250,52 @@ const SearchScreenModern = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: modernTheme.background,
   },
   header: {
-    backgroundColor: modernTheme.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
+    borderBottomLeftRadius: enhancedTheme.borderRadius.lg,
+    borderBottomRightRadius: enhancedTheme.borderRadius.lg,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  languageButton: {
+    marginLeft: enhancedTheme.spacing.md,
+    padding: enhancedTheme.spacing.sm,
+  },
   headerText: {
-    ...typography.headlineLarge,
-    color: modernTheme.white,
+    fontSize: enhancedTheme.typography.headlineSmall.fontSize,
+    fontWeight: '700',
   },
   headerSubtext: {
-    ...typography.bodySmall,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
     marginTop: 2,
   },
   searchContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: modernTheme.white,
+    backgroundColor: '#ffffff',
   },
   searchBar: {
     marginHorizontal: 0,
   },
   listContent: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   cardContainer: {
-    marginBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   resultsInfo: {
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: modernTheme.divider,
+    marginBottom: enhancedTheme.spacing.md,
   },
   resultCount: {
-    ...typography.bodySmall,
-    color: modernTheme.textSecondary,
+    fontSize: enhancedTheme.typography.bodySmall.fontSize,
     fontWeight: '600',
   },
 });

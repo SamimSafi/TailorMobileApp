@@ -1,8 +1,25 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
-import SimInfo from 'react-native-sim-info';
-import { getActiveSIMInfoList, getAllPhoneNumbers } from 'react-native-simcard-info';
 
 const { SmsModule } = NativeModules;
+
+// Safely import SIM detection modules with graceful fallback
+let SimInfo = null;
+let getActiveSIMInfoList = null;
+let getAllPhoneNumbers = null;
+
+try {
+  SimInfo = require('react-native-sim-info').default;
+} catch (error) {
+  console.warn('⚠️ react-native-sim-info not available:', error.message);
+}
+
+try {
+  const simCardInfo = require('react-native-simcard-info');
+  getActiveSIMInfoList = simCardInfo.getActiveSIMInfoList;
+  getAllPhoneNumbers = simCardInfo.getAllPhoneNumbers;
+} catch (error) {
+  console.warn('⚠️ react-native-simcard-info not available:', error.message);
+}
 
 // SIM Detection and SMS service for native Android
 class NativeSmsService {
@@ -122,6 +139,11 @@ class NativeSmsService {
 
       // Primary: Try react-native-simcard-info for SIM display info (best data)
       try {
+        if (!getActiveSIMInfoList || !getAllPhoneNumbers) {
+          console.warn('⚠️ SIM detection functions not available, skipping react-native-simcard-info');
+          throw new Error('SIM functions not available');
+        }
+        
         console.log('📱 Attempting SIM detection via react-native-simcard-info...');
         
         const [activeSimList, phoneNumbers] = await Promise.all([
@@ -214,6 +236,11 @@ class NativeSmsService {
 
       // Secondary: Try react-native-sim-info
       try {
+        if (!SimInfo || typeof SimInfo.getAllSimSlots !== 'function') {
+          console.warn('⚠️ SimInfo.getAllSimSlots not available, skipping react-native-sim-info');
+          throw new Error('SimInfo not available');
+        }
+        
         console.log('📱 Attempting SIM detection via react-native-sim-info (fallback)...');
         const simSlots = await SimInfo.getAllSimSlots();
         console.log('📱 SimInfo result:', simSlots);
@@ -707,7 +734,18 @@ export const getAvailableSims = async () => {
     return sims;
   } catch (error) {
     console.error('❌ getAvailableSims export error:', error);
-    throw error;
+    // Return default SIM as fallback instead of throwing
+    console.log('⚠️ Returning default SIM due to error');
+    return [
+      {
+        id: 0,
+        name: 'SIM Slot 1 (Primary)',
+        phoneNumber: '',
+        simSlot: 0,
+        isReady: true,
+        isActive: true,
+      },
+    ];
   }
 };
 

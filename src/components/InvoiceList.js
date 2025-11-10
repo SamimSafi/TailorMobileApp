@@ -1,20 +1,19 @@
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowRight, Calendar, CreditCard, Shirt } from 'lucide-react-native';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 const InvoiceList = ({ invoices, onSelectInvoice }) => {
   const getPaymentStatusColor = (status) => {
     switch (status) {
       case 'paid':
-        return colors.success;
+        return enhancedTheme.colors.success;
       case 'partial':
-        return colors.warning;
+        return enhancedTheme.colors.warning;
       case 'pending':
       case 'issued':
       default:
-        return colors.error;
+        return enhancedTheme.colors.error;
     }
   };
 
@@ -55,7 +54,7 @@ const InvoiceList = ({ invoices, onSelectInvoice }) => {
           {/* QAD Andam Info */}
           <View style={styles.infoRow}>
             <View style={styles.infoLeft}>
-              <Ionicons name="shirt-outline" size={14} color={colors.darkGray} />
+              <Shirt size={14} color={enhancedTheme.colors.neutral600} />
               <Text style={styles.infoLabel}>Qad Andam</Text>
             </View>
             <Text style={styles.infoValue}>{item.qadAndamId}</Text>
@@ -70,14 +69,14 @@ const InvoiceList = ({ invoices, onSelectInvoice }) => {
             <View style={styles.divider} />
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Paid Amount</Text>
-              <Text style={[styles.amountValue, { color: colors.success }]}>
+              <Text style={[styles.amountValue, { color: enhancedTheme.colors.success }]}>
                 {formatCurrency(item.paidAmount || 0)}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.amountColumn}>
               <Text style={styles.amountLabel}>Due Amount</Text>
-              <Text style={[styles.amountValue, { color: hasDue ? colors.error : colors.success, fontWeight: '700' }]}>
+              <Text style={[styles.amountValue, { color: hasDue ? enhancedTheme.colors.error : enhancedTheme.colors.success, fontWeight: '700' }]}>
                 {formatCurrency(dueAmount)}
               </Text>
             </View>
@@ -87,7 +86,7 @@ const InvoiceList = ({ invoices, onSelectInvoice }) => {
           {item.dueDate && (
             <View style={styles.infoRow}>
               <View style={styles.infoLeft}>
-                <Ionicons name="calendar-outline" size={14} color={colors.darkGray} />
+                <Calendar size={14} color={enhancedTheme.colors.neutral600} />
                 <Text style={styles.infoLabel}>Due Date</Text>
               </View>
               <Text style={styles.infoValue}>{formatDate(item.dueDate)}</Text>
@@ -108,9 +107,9 @@ const InvoiceList = ({ invoices, onSelectInvoice }) => {
         {/* Pay Button */}
         {hasDue && (
           <View style={styles.payButtonContainer}>
-            <Ionicons name="card-outline" size={16} color={colors.white} />
+            <CreditCard size={16} color={enhancedTheme.colors.surface} />
             <Text style={styles.payButtonText}>Pay {formatCurrency(dueAmount)}</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.white} />
+            <ArrowRight size={16} color={enhancedTheme.colors.surface} />
           </View>
         )}
       </TouchableOpacity>
@@ -120,7 +119,7 @@ const InvoiceList = ({ invoices, onSelectInvoice }) => {
   if (invoices.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="receipt-outline" size={48} color={colors.border} />
+        <CreditCard size={48} color={enhancedTheme.colors.neutral300} />
         <Text style={styles.emptyText}>No Invoices</Text>
         <Text style={styles.emptySubtext}>Invoices will appear here</Text>
       </View>
@@ -141,39 +140,39 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
-    marginTop: spacing.md,
+    color: enhancedTheme.colors.neutral900,
+    marginTop: enhancedTheme.spacing.md,
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.darkGray,
-    marginTop: spacing.sm,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.sm,
   },
   invoiceCard: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    marginBottom: spacing.md,
+    backgroundColor: enhancedTheme.colors.surface,
+    borderRadius: enhancedTheme.borderRadius.md,
+    marginBottom: enhancedTheme.spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: enhancedTheme.colors.neutral200,
     overflow: 'hidden',
   },
   invoiceCardHighlight: {
-    borderColor: colors.error,
+    borderColor: enhancedTheme.colors.error,
     borderWidth: 1.5,
   },
   invoiceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: enhancedTheme.colors.neutral200,
   },
   invoiceNumberSection: {
     flex: 1,
@@ -181,17 +180,17 @@ const styles = StyleSheet.create({
   invoiceNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   invoiceDate: {
     fontSize: 12,
-    color: colors.darkGray,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   statusBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 6,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.xs,
+    borderRadius: enhancedTheme.borderRadius.sm,
     borderWidth: 1,
   },
   statusText: {
@@ -199,39 +198,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   invoiceBody: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   infoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   infoLabel: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     fontWeight: '600',
   },
   amountContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.lightGray,
-    borderRadius: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   amountColumn: {
     flex: 1,
@@ -239,50 +238,50 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 11,
-    color: colors.darkGray,
-    marginBottom: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginBottom: enhancedTheme.spacing.xs,
   },
   amountValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   divider: {
     width: 1,
     height: 30,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.sm,
+    backgroundColor: enhancedTheme.colors.neutral200,
+    marginHorizontal: enhancedTheme.spacing.sm,
   },
   descriptionContainer: {
-    backgroundColor: colors.lightGray,
-    borderRadius: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.sm,
+    marginBottom: enhancedTheme.spacing.md,
   },
   descriptionLabel: {
     fontSize: 11,
-    color: colors.darkGray,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '500',
-    marginBottom: spacing.xs,
+    marginBottom: enhancedTheme.spacing.xs,
   },
   descriptionText: {
     fontSize: 12,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     lineHeight: 16,
   },
   payButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.error,
-    paddingVertical: spacing.md,
+    gap: enhancedTheme.spacing.sm,
+    backgroundColor: enhancedTheme.colors.error,
+    paddingVertical: enhancedTheme.spacing.md,
   },
   payButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: enhancedTheme.colors.surface,
   },
 });
 

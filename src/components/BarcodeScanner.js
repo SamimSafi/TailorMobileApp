@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Text,
-  Modal,
-} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { X } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import {
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { enhancedTheme } from '../theme/enhancedTheme';
 
 const BarcodeScanner = ({ visible, onClose, onScan }) => {
   const [permission, requestPermission] = useCameraPermissions();
@@ -39,7 +37,7 @@ const BarcodeScanner = ({ visible, onClose, onScan }) => {
         <View style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.white} />
+              <X size={24} color={enhancedTheme.colors.surface} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Scan QR Code</Text>
             <View style={{ width: 24 }} />
@@ -58,7 +56,7 @@ const BarcodeScanner = ({ visible, onClose, onScan }) => {
         <View style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.white} />
+              <X size={24} color={enhancedTheme.colors.surface} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Scan QR Code</Text>
             <View style={{ width: 24 }} />
@@ -82,7 +80,7 @@ const BarcodeScanner = ({ visible, onClose, onScan }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={colors.white} />
+            <X size={24} color={enhancedTheme.colors.surface} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Scan QR Code</Text>
           <View style={{ width: 24 }} />
@@ -111,20 +109,20 @@ const BarcodeScanner = ({ visible, onClose, onScan }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.text,
+    backgroundColor: enhancedTheme.colors.neutral900,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.primary,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.lg,
+    backgroundColor: enhancedTheme.colors.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.white,
+    color: enhancedTheme.colors.surface,
   },
   camera: {
     flex: 1,
@@ -138,40 +136,40 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderWidth: 2,
-    borderColor: colors.success,
-    borderRadius: 12,
+    borderColor: enhancedTheme.colors.success,
+    borderRadius: enhancedTheme.borderRadius.lg,
     backgroundColor: 'transparent',
   },
   footer: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
+    paddingVertical: enhancedTheme.spacing.lg,
+    paddingHorizontal: enhancedTheme.spacing.md,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
   },
   footerText: {
-    color: colors.white,
+    color: enhancedTheme.colors.surface,
     fontSize: 16,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
   },
   text: {
     fontSize: 16,
-    color: colors.white,
-    marginBottom: spacing.lg,
+    color: enhancedTheme.colors.surface,
+    marginBottom: enhancedTheme.spacing.lg,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
+    backgroundColor: enhancedTheme.colors.primary,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.md,
+    borderRadius: enhancedTheme.borderRadius.md,
   },
   buttonText: {
-    color: colors.white,
+    color: enhancedTheme.colors.surface,
     fontSize: 16,
     fontWeight: '600',
   },

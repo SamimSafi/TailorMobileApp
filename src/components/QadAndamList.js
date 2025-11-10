@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FileText, FolderOpen, LogIn, LogOut, Plus, Ruler } from 'lucide-react-native';
 import {
     ActivityIndicator,
     FlatList,
@@ -7,11 +7,64 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { useLanguage } from '../hooks/useLanguage';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { formatDate } from '../utils/formatters';
 
-const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
+const QadAndamList = ({ qadAndams, loading, onSelectQadAndam, onViewReceipt }) => {
+  const { t } = useLanguage();
+
+  const renderDescription = (item) => {
+    let descriptionData = null;
+
+    // Try to use descriptionStructured if available
+    if (item.descriptionStructured) {
+      descriptionData = item.descriptionStructured;
+    } else if (item.description) {
+      // Try to parse the description JSON string
+      try {
+        const parsed = typeof item.description === 'string' ? JSON.parse(item.description) : item.description;
+        descriptionData = parsed;
+      } catch (_error) {
+        // If parsing fails, display as plain text
+        return (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.label}>{t('qadAndam.notes')}</Text>
+            <Text style={styles.description} numberOfLines={2}>
+              {item.description}
+            </Text>
+          </View>
+        );
+      }
+    }
+
+    if (!descriptionData) return null;
+
+    const customFields = descriptionData.customFields || [];
+    const freeText = descriptionData.freeText || '';
+
+    return (
+      <View style={styles.descriptionContainer}>
+        <Text style={styles.label}>{t('qadAndam.notes')}</Text>
+
+        {/* Custom Fields */}
+        {customFields.map((field, index) => (
+          <View key={field.id || index} style={styles.customFieldRow}>
+            <Text style={styles.customFieldLabel}>{field.label}:</Text>
+            <Text style={styles.customFieldValue}>{field.value}</Text>
+          </View>
+        ))}
+
+        {/* Free Text */}
+        {freeText && (
+          <Text style={styles.description} numberOfLines={2}>
+            {freeText}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   const renderMeasurements = (item) => {
     const measurements = [];
     if (item.qad) measurements.push(`Qad: ${item.qad}`);
@@ -21,27 +74,18 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
   };
 
   const renderItem = ({ item }) => {
-    const statusColor = item.isActive ? colors.success : colors.error;
-    const statusText = item.isActive ? 'Active' : 'Inactive';
+    const statusColor = item.isActive ? enhancedTheme.colors.success : enhancedTheme.colors.error;
+    const statusText = item.isActive ? t('customer.active') : t('customer.inactive');
 
     return (
-      <TouchableOpacity
-        style={styles.item}
-        onPress={() => onSelectQadAndam(item)}
-      >
-        <View style={styles.header}>
+      <View style={styles.item}>
+        <TouchableOpacity
+          style={styles.header}
+          onPress={() => onViewReceipt && onViewReceipt(item)}
+          activeOpacity={0.9}
+        >
           <View style={styles.titleContainer}>
-            <Ionicons
-              name={
-                item.qadAndamType === 'Kala'
-                  ? 'shirt-outline'
-                  : item.qadAndamType === 'Waskat'
-                    ? 'square-outline'
-                    : 'checkmark-outline'
-              }
-              size={20}
-              color={colors.primary}
-            />
+            <Ruler size={20} color={enhancedTheme.colors.primary} />
             <View style={styles.typeContainer}>
               <Text style={styles.type}>{item.qadAndamType}</Text>
               <Text style={styles.subType}>ID: {item.id}</Text>
@@ -50,18 +94,13 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
               <Text style={styles.statusText}>{statusText}</Text>
             </View>
           </View>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={colors.primary}
-          />
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.details}>
           {/* Type and Measurements */}
           {renderMeasurements(item) && (
             <View style={styles.detailRow}>
-              <Text style={styles.label}>Measurements</Text>
+              <Text style={styles.label}>{t('qadAndam.measurements')}</Text>
               <Text style={styles.value} numberOfLines={1}>
                 {renderMeasurements(item)}
               </Text>
@@ -72,8 +111,8 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
           <View style={styles.dateRow}>
             {item.enterDate && (
               <View style={styles.dateItem}>
-                <Ionicons name="log-in-outline" size={14} color={colors.darkGray} />
-                <Text style={styles.dateLabel}>Entered</Text>
+                <LogIn size={14} color={enhancedTheme.colors.neutral600} />
+                <Text style={styles.dateLabel}>{t('qadAndam.entered')}</Text>
                 <Text style={styles.dateValue}>
                   {formatDate(item.enterDate)}
                 </Text>
@@ -81,8 +120,8 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
             )}
             {item.registerDate && (
               <View style={styles.dateItem}>
-                <Ionicons name="create-outline" size={14} color={colors.darkGray} />
-                <Text style={styles.dateLabel}>Registered</Text>
+                <LogIn size={14} color={enhancedTheme.colors.neutral600} />
+                <Text style={styles.dateLabel}>{t('qadAndam.registered')}</Text>
                 <Text style={styles.dateValue}>
                   {formatDate(item.registerDate)}
                 </Text>
@@ -90,9 +129,9 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
             )}
             {item.returnDate && (
               <View style={styles.dateItem}>
-                <Ionicons name="log-out-outline" size={14} color={colors.warning} />
-                <Text style={styles.dateLabel}>Return</Text>
-                <Text style={[styles.dateValue, { color: colors.warning }]}>
+                <LogOut size={14} color={enhancedTheme.colors.warning} />
+                <Text style={styles.dateLabel}>{t('qadAndam.return')}</Text>
+                <Text style={[styles.dateValue, { color: enhancedTheme.colors.warning }]}>
                   {formatDate(item.returnDate)}
                 </Text>
               </View>
@@ -100,29 +139,34 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
           </View>
 
           {/* Description */}
-          {item.description && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.label}>Notes</Text>
-              <Text style={styles.description} numberOfLines={2}>
-                {item.description}
-              </Text>
-            </View>
-          )}
+          {renderDescription(item)}
         </View>
 
         {/* Action Footer */}
         <View style={styles.footer}>
-          <Ionicons name="add-circle" size={18} color={colors.primary} />
-          <Text style={styles.footerText}>Create Invoice</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onViewReceipt && onViewReceipt(item)}
+          >
+            <FileText size={18} color={enhancedTheme.colors.primary} />
+            <Text style={styles.actionText}>{t('qadAndam.viewReceipt')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onSelectQadAndam(item)}
+          >
+            <Plus size={18} color={enhancedTheme.colors.primary} />
+            <Text style={styles.actionText}>{t('qadAndam.createInvoice')}</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={enhancedTheme.colors.primary} />
       </View>
     );
   }
@@ -130,11 +174,10 @@ const QadAndamList = ({ qadAndams, loading, onSelectQadAndam }) => {
   if (!qadAndams || qadAndams.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons
-          name="folder-open"
+        <FolderOpen
           size={48}
-          color={colors.border}
-          style={{ marginBottom: spacing.md }}
+          color={enhancedTheme.colors.neutral300}
+          style={{ marginBottom: enhancedTheme.spacing.md }}
         />
         <Text style={styles.emptyText}>No QAD Andams found</Text>
       </View>
@@ -158,27 +201,27 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   item: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    marginBottom: spacing.md,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.md,
+    marginBottom: enhancedTheme.spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: enhancedTheme.colors.neutral200,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: enhancedTheme.colors.neutral200,
   },
   titleContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   typeContainer: {
     flex: 1,
@@ -186,27 +229,27 @@ const styles = StyleSheet.create({
   type: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   subType: {
     fontSize: 12,
-    color: colors.darkGray,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 4,
+    paddingHorizontal: enhancedTheme.spacing.sm,
+    paddingVertical: enhancedTheme.spacing.xs,
+    borderRadius: enhancedTheme.borderRadius.sm,
   },
   statusText: {
-    color: colors.white,
+    color: enhancedTheme.colors.neutral50,
     fontSize: 11,
     fontWeight: '600',
   },
   details: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
+    gap: enhancedTheme.spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
@@ -215,77 +258,107 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: colors.darkGray,
+    color: enhancedTheme.colors.neutral600,
     fontWeight: '500',
   },
   value: {
     fontSize: 13,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
-    marginLeft: spacing.md,
+    marginLeft: enhancedTheme.spacing.md,
   },
   dateRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   dateItem: {
     flex: 1,
-    backgroundColor: colors.lightGray,
-    borderRadius: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    paddingHorizontal: enhancedTheme.spacing.sm,
+    paddingVertical: enhancedTheme.spacing.sm,
     alignItems: 'center',
   },
   dateLabel: {
     fontSize: 10,
-    color: colors.darkGray,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
     fontWeight: '500',
   },
   dateValue: {
     fontSize: 12,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     fontWeight: '600',
-    marginTop: spacing.xs,
+    marginTop: enhancedTheme.spacing.xs,
   },
   descriptionContainer: {
-    backgroundColor: colors.lightGray,
-    borderRadius: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.sm,
   },
   description: {
     fontSize: 12,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     lineHeight: 16,
-    marginTop: spacing.xs,
+    marginTop: enhancedTheme.spacing.xs,
+  },
+  customFieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: enhancedTheme.spacing.xs,
+  },
+  customFieldLabel: {
+    fontSize: 12,
+    color: enhancedTheme.colors.neutral700,
+    fontWeight: '500',
+    flex: 1,
+  },
+  customFieldValue: {
+    fontSize: 12,
+    color: enhancedTheme.colors.neutral900,
+    fontWeight: '600',
+    textAlign: 'right',
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary + '10',
+    justifyContent: 'space-between',
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
+    backgroundColor: enhancedTheme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: enhancedTheme.colors.neutral200,
+    gap: enhancedTheme.spacing.sm,
   },
-  footerText: {
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: enhancedTheme.spacing.sm,
+    paddingVertical: enhancedTheme.spacing.sm,
+    borderWidth: 1,
+    borderColor: enhancedTheme.colors.primary + '40',
+    borderRadius: enhancedTheme.borderRadius.sm,
+    backgroundColor: enhancedTheme.colors.primary + '0D',
+  },
+  actionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   centerContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: enhancedTheme.spacing.xl,
   },
   emptyText: {
     fontSize: 16,
-    color: colors.darkGray,
+    color: enhancedTheme.colors.neutral600,
     textAlign: 'center',
   },
 });

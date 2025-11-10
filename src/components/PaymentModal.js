@@ -1,17 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AlertCircle, CheckCircle2, CreditCard, DollarSign, FileText } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { useLanguage } from '../hooks/useLanguage';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { formatCurrency } from '../utils/formatters';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernModal from './ui/ModernModal';
 
 const PaymentModal = ({
   visible,
@@ -20,6 +21,7 @@ const PaymentModal = ({
   onSubmit,
   onClose,
 }) => {
+  const { t } = useLanguage();
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
@@ -43,12 +45,12 @@ const PaymentModal = ({
     setError('');
 
     if (!amount || enteredAmount <= 0) {
-      setError('Please enter a valid amount');
+      setError(t('validation.invalidAmount'));
       return;
     }
 
     if (enteredAmount > dueAmount) {
-      setError(`Amount cannot exceed due amount (${formatCurrency(dueAmount)})`);
+      setError(t('validation.invalidAmount'));
       return;
     }
 
@@ -82,40 +84,32 @@ const PaymentModal = ({
   if (!invoice) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.container}>
-        {/* Handle Bar */}
-        <View style={styles.handleContainer}>
-          <View style={styles.handle} />
-        </View>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Record Payment</Text>
-          <TouchableOpacity onPress={handleClose} disabled={loading}>
-            <Ionicons name="close" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+    <ModernModal
+      visible={visible}
+      onClose={handleClose}
+      title={t('payment.recordPayment')}
+    >
+      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={!loading}>
 
         {/* Invoice Info */}
         <View style={styles.invoiceInfo}>
           <View style={styles.invoiceRow}>
-            <Text style={styles.invoiceLabel}>Invoice Number</Text>
+            <Text style={styles.invoiceLabel}>{t('invoice.invoiceNumber')}</Text>
             <Text style={styles.invoiceValue}>{invoice.invoiceNumber}</Text>
           </View>
           <View style={styles.invoiceRow}>
-            <Text style={styles.invoiceLabel}>Total Amount</Text>
+            <Text style={styles.invoiceLabel}>{t('invoice.total')}</Text>
             <Text style={styles.invoiceValue}>{formatCurrency(invoice.totalAmount)}</Text>
           </View>
           <View style={styles.invoiceRow}>
-            <Text style={styles.invoiceLabel}>Paid Amount</Text>
-            <Text style={[styles.invoiceValue, { color: colors.success }]}>
+            <Text style={styles.invoiceLabel}>{t('payment.paymentAmount')}</Text>
+            <Text style={[styles.invoiceValue, { color: enhancedTheme.colors.success }]}>
               {formatCurrency(invoice.paidAmount || 0)}
             </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.invoiceRow}>
-            <Text style={[styles.invoiceLabel, styles.dueLabelBold]}>Due Amount</Text>
+            <Text style={[styles.invoiceLabel, styles.dueLabelBold]}>{t('payment.amountToPay')}</Text>
             <Text style={[styles.invoiceValue, styles.dueValueBold]}>
               {formatCurrency(dueAmount)}
             </Text>
@@ -124,7 +118,7 @@ const PaymentModal = ({
 
         {/* Quick Amount Buttons */}
         <View style={styles.quickAmountContainer}>
-          <Text style={styles.quickAmountLabel}>Quick Amount</Text>
+          <Text style={styles.quickAmountLabel}>{t('payment.paymentAmount')}</Text>
           <View style={styles.quickAmountButtons}>
             {[25, 50, 75, 100].map((percent) => (
               <TouchableOpacity
@@ -153,13 +147,13 @@ const PaymentModal = ({
 
         {/* Amount Input */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Payment Amount</Text>
+          <Text style={styles.inputLabel}>{t('payment.paymentAmount')}</Text>
           <View style={styles.amountInputContainer}>
-            <Text style={styles.currencySymbol}>Rs.</Text>
+            <Text style={styles.currencySymbol}>؋</Text>
             <TextInput
               style={styles.amountInput}
               placeholder="0"
-              placeholderTextColor={colors.border}
+              placeholderTextColor={enhancedTheme.colors.border}
               keyboardType="decimal-pad"
               value={amount}
               onChangeText={(text) => {
@@ -171,7 +165,7 @@ const PaymentModal = ({
           </View>
           {amount && !isValidAmount && (
             <View style={styles.amountWarning}>
-              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+              <AlertCircle size={14} color={enhancedTheme.colors.error} />
               <Text style={styles.amountWarningText}>
                 {enteredAmount > dueAmount
                   ? `Cannot exceed due amount`
@@ -183,49 +177,46 @@ const PaymentModal = ({
 
         {/* Payment Method */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Payment Method</Text>
+          <Text style={styles.inputLabel}>{t('payment.paymentMethod')}</Text>
           <View style={styles.methodContainer}>
-            {['cash', 'card', 'cheque'].map((method) => (
-              <TouchableOpacity
-                key={method}
-                style={[
-                  styles.methodButton,
-                  paymentMethod === method && styles.methodButtonActive,
-                ]}
-                onPress={() => setPaymentMethod(method)}
-                disabled={loading}
-              >
-                <Ionicons
-                  name={
-                    method === 'cash'
-                      ? 'cash-outline'
-                      : method === 'card'
-                        ? 'card-outline'
-                        : 'document-text-outline'
-                  }
-                  size={20}
-                  color={paymentMethod === method ? colors.white : colors.darkGray}
-                />
-                <Text
+            {['cash', 'card', 'cheque'].map((method) => {
+              const getIcon = () => {
+                if (method === 'cash') return <DollarSign size={20} color={paymentMethod === method ? enhancedTheme.colors.neutral100 : enhancedTheme.colors.neutral700} />;
+                if (method === 'card') return <CreditCard size={20} color={paymentMethod === method ? enhancedTheme.colors.neutral100 : enhancedTheme.colors.neutral700} />;
+                return <FileText size={20} color={paymentMethod === method ? enhancedTheme.colors.neutral100 : enhancedTheme.colors.neutral700} />;
+              };
+              return (
+                <TouchableOpacity
+                  key={method}
                   style={[
-                    styles.methodButtonText,
-                    paymentMethod === method && styles.methodButtonTextActive,
+                    styles.methodButton,
+                    paymentMethod === method && styles.methodButtonActive,
                   ]}
+                  onPress={() => setPaymentMethod(method)}
+                  disabled={loading}
                 >
-                  {method.charAt(0).toUpperCase() + method.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {getIcon()}
+                  <Text
+                    style={[
+                      styles.methodButtonText,
+                      paymentMethod === method && styles.methodButtonTextActive,
+                    ]}
+                  >
+                    {method.charAt(0).toUpperCase() + method.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Notes */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Notes (Optional)</Text>
+          <Text style={styles.inputLabel}>{t('qadAndam.notes')}</Text>
           <TextInput
             style={styles.notesInput}
-            placeholder="Add payment notes..."
-            placeholderTextColor={colors.border}
+            placeholder={t('payment.paymentAmount')}
+            placeholderTextColor={enhancedTheme.colors.border}
             value={notes}
             onChangeText={setNotes}
             editable={!loading}
@@ -236,283 +227,212 @@ const PaymentModal = ({
         {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={16} color={colors.error} />
+            <AlertCircle size={16} color={enhancedTheme.colors.error} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
-        {/* Submit Button */}
+        {/* Submit Buttons */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.cancelButton}
+          <ModernButtonEnhanced
+            title={t('common.cancel')}
+            variant="secondary"
             onPress={handleClose}
             disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              (!isValidAmount || loading) && styles.submitButtonDisabled,
-            ]}
+          />
+          <ModernButtonEnhanced
+            title={loading ? '' : t('payment.recordPayment')}
+            variant="primary"
             onPress={handleSubmit}
             disabled={!isValidAmount || loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-                <Text style={styles.submitButtonText}>Confirm Payment</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            icon={!loading ? <CheckCircle2 size={18} /> : undefined}
+          />
         </View>
-      </View>
-    </Modal>
+      </ScrollView>
+    </ModernModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-    marginTop: 'auto',
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
   invoiceInfo: {
-    backgroundColor: colors.lightGray,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-    borderRadius: 8,
-    padding: spacing.md,
+    backgroundColor: enhancedTheme.colors.neutral100,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginVertical: enhancedTheme.spacing.lg,
+    borderRadius: enhancedTheme.borderRadius.md,
+    padding: enhancedTheme.spacing.lg,
   },
   invoiceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: enhancedTheme.spacing.sm,
   },
   invoiceLabel: {
     fontSize: 13,
-    color: colors.darkGray,
+    color: enhancedTheme.colors.neutral100,
   },
   invoiceValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.sm,
+    backgroundColor: enhancedTheme.colors.neutral200,
+    marginVertical: enhancedTheme.spacing.sm,
   },
   dueLabelBold: {
     fontWeight: '700',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   dueValueBold: {
     fontWeight: '700',
-    color: colors.error,
+    color: enhancedTheme.colors.error,
     fontSize: 16,
   },
   quickAmountContainer: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
   quickAmountLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.sm,
   },
   quickAmountButtons: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   quickButton: {
     flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 6,
+    paddingVertical: enhancedTheme.spacing.lg,
+    borderRadius: enhancedTheme.borderRadius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: enhancedTheme.colors.neutral200,
     alignItems: 'center',
   },
   quickButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: enhancedTheme.colors.primary,
+    borderColor: enhancedTheme.colors.primary,
   },
   quickButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   quickButtonTextActive: {
-    color: colors.white,
+    color: enhancedTheme.colors.neutral100,
   },
   inputSection: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.sm,
   },
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.white,
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    backgroundColor: enhancedTheme.colors.neutral100,
   },
   currencySymbol: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.darkGray,
-    marginRight: spacing.sm,
+    color: enhancedTheme.colors.neutral600,
+    marginRight: enhancedTheme.spacing.sm,
   },
   amountInput: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: enhancedTheme.spacing.lg,
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   amountWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
+    marginTop: enhancedTheme.spacing.sm,
+    paddingHorizontal: enhancedTheme.spacing.sm,
   },
   amountWarningText: {
     fontSize: 12,
-    color: colors.error,
+    color: enhancedTheme.colors.error,
     flex: 1,
   },
   methodContainer: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   methodButton: {
     flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: enhancedTheme.spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: colors.white,
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.md,
+    backgroundColor: enhancedTheme.colors.neutral100,
   },
   methodButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: enhancedTheme.colors.primary,
+    borderColor: enhancedTheme.colors.primary,
   },
   methodButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.text,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral900,
+    marginTop: enhancedTheme.spacing.xs,
   },
   methodButtonTextActive: {
-    color: colors.white,
+    color: enhancedTheme.colors.neutral100,
   },
   notesInput: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
     fontSize: 14,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     minHeight: 80,
     textAlignVertical: 'top',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.error + '10',
-    borderRadius: 6,
+    gap: enhancedTheme.spacing.sm,
+    marginHorizontal: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.sm,
+    backgroundColor: enhancedTheme.colors.error + '15',
+    borderRadius: enhancedTheme.borderRadius.sm,
     borderLeftWidth: 3,
-    borderLeftColor: colors.error,
+    borderLeftColor: enhancedTheme.colors.error,
   },
   errorText: {
     fontSize: 13,
-    color: colors.error,
+    color: enhancedTheme.colors.error,
     flex: 1,
   },
   footer: {
     flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    gap: enhancedTheme.spacing.lg,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  submitButton: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.success,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.border,
-  },
-  submitButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.white,
+    borderTopColor: enhancedTheme.colors.neutral200,
   },
 });
 

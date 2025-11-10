@@ -1,7 +1,8 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Plus, Search } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { FlatList, SafeAreaView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AddCustomerModal from '../components/AddCustomerModal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import CustomerCard from '../components/CustomerCard';

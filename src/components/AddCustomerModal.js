@@ -1,20 +1,19 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
     Alert,
-    Modal,
     ScrollView,
     StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { useLanguage } from '../hooks/useLanguage';
 import { createCustomer } from '../services/api';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernInputEnhanced from './ui/ModernInputEnhanced';
+import ModernModal from './ui/ModernModal';
 
 const AddCustomerModal = ({ visible, onClose, onSuccess }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     customerName: '',
     phoneNumber: '',
@@ -32,15 +31,15 @@ const AddCustomerModal = ({ visible, onClose, onSuccess }) => {
 
   const validateForm = useCallback(() => {
     if (!formData.customerName.trim()) {
-      Alert.alert('Validation Error', 'Customer name is required');
+      Alert.alert(t('validation.required'), t('addCustomer.firstName') + ' ' + t('validation.required'));
       return false;
     }
     if (!formData.phoneNumber.trim()) {
-      Alert.alert('Validation Error', 'Phone number is required');
+      Alert.alert(t('validation.required'), t('addCustomer.phone') + ' ' + t('validation.required'));
       return false;
     }
     return true;
-  }, [formData]);
+  }, [formData, t]);
 
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
@@ -60,7 +59,7 @@ const AddCustomerModal = ({ visible, onClose, onSuccess }) => {
       });
 
       console.log('✓ Customer created successfully:', response.data);
-      Alert.alert('Success', 'Customer added successfully');
+      Alert.alert(t('common.success'), t('addCustomer.customerAdded'));
 
       // Reset form
       setFormData({
@@ -77,7 +76,7 @@ const AddCustomerModal = ({ visible, onClose, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('Error creating customer:', error);
-      Alert.alert('Error', error.message || 'Failed to create customer');
+      Alert.alert(t('common.error'), error.message || t('addCustomer.customerAdded'));
     } finally {
       setLoading(false);
     }
@@ -96,184 +95,98 @@ const AddCustomerModal = ({ visible, onClose, onSuccess }) => {
   }, [loading, onClose]);
 
   return (
-    <Modal
+    <ModernModal
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+      onClose={handleClose}
+      title={t('addCustomer.title')}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} disabled={loading}>
-            <Ionicons name="close" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add New Customer</Text>
-          <View style={{ width: 24 }} />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!loading}
+      >
+        <View style={styles.formGroup}>
+          <ModernInputEnhanced
+            placeholder={t('addCustomer.firstName')}
+            label={t('addCustomer.fullName')}
+            value={formData.customerName}
+            onChangeText={(text) => handleInputChange('customerName', text)}
+            editable={!loading}
+            required
+          />
         </View>
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={!loading}
-        >
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Customer Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter customer name"
-              placeholderTextColor={colors.lightGray}
-              value={formData.customerName}
-              onChangeText={(text) => handleInputChange('customerName', text)}
-              editable={!loading}
-            />
-          </View>
+        <View style={styles.formGroup}>
+          <ModernInputEnhanced
+            placeholder={t('addCustomer.phone')}
+            label={t('addCustomer.phone')}
+            value={formData.phoneNumber}
+            onChangeText={(text) => handleInputChange('phoneNumber', text)}
+            keyboardType="phone-pad"
+            editable={!loading}
+            required
+          />
+        </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Phone Number *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter phone number"
-              placeholderTextColor={colors.lightGray}
-              value={formData.phoneNumber}
-              onChangeText={(text) => handleInputChange('phoneNumber', text)}
-              keyboardType="phone-pad"
-              editable={!loading}
-            />
-          </View>
+        <View style={styles.formGroup}>
+          <ModernInputEnhanced
+            placeholder={t('addCustomer.address')}
+            label={t('addCustomer.address')}
+            value={formData.address}
+            onChangeText={(text) => handleInputChange('address', text)}
+            multiline
+            numberOfLines={3}
+            editable={!loading}
+          />
+        </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              placeholder="Enter address (optional)"
-              placeholderTextColor={colors.lightGray}
-              value={formData.address}
-              onChangeText={(text) => handleInputChange('address', text)}
-              multiline
-              numberOfLines={3}
-              editable={!loading}
-            />
-          </View>
+        <View style={styles.formGroup}>
+          <ModernInputEnhanced
+            placeholder={t('qadAndam.notes')}
+            label={t('qadAndam.notes')}
+            value={formData.notes}
+            onChangeText={(text) => handleInputChange('notes', text)}
+            multiline
+            numberOfLines={3}
+            editable={!loading}
+          />
+        </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Notes</Text>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              placeholder="Enter notes (optional)"
-              placeholderTextColor={colors.lightGray}
-              value={formData.notes}
-              onChangeText={(text) => handleInputChange('notes', text)}
-              multiline
-              numberOfLines={3}
-              editable={!loading}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        <View style={styles.buttonContainer}>
+          <ModernButtonEnhanced
+            title={loading ? t('common.loading') : t('addCustomer.title')}
             onPress={handleSubmit}
+            variant="primary"
+            size="lg"
             disabled={loading}
-          >
-            <Ionicons
-              name={loading ? 'hourglass' : 'checkmark'}
-              size={20}
-              color={colors.white}
-            />
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Creating...' : 'Add Customer'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.cancelButton, loading && styles.cancelButtonDisabled]}
+            loading={loading}
+            fullWidth
+          />
+          <ModernButtonEnhanced
+            title={t('common.cancel')}
             onPress={handleClose}
+            variant="secondary"
+            size="lg"
             disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </Modal>
+            fullWidth
+          />
+        </View>
+      </ScrollView>
+    </ModernModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    marginTop: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
   content: {
-    flex: 1,
-    padding: spacing.md,
+    padding: enhancedTheme.spacing.lg,
   },
   formGroup: {
-    marginBottom: spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    color: colors.text,
-  },
-  multilineInput: {
-    paddingVertical: spacing.md,
-    textAlignVertical: 'top',
-  },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  cancelButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  cancelButtonDisabled: {
-    opacity: 0.5,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
+  buttonContainer: {
+    gap: enhancedTheme.spacing.md,
+    marginTop: enhancedTheme.spacing.xl,
+    marginBottom: enhancedTheme.spacing.xl,
   },
 });
 

@@ -61,11 +61,11 @@ const ModernSearchBar = ({
         </View>
       )}
 
-      {onScanPress && !loading && (
+      {/* {onScanPress && !loading && ( */}
         <TouchableOpacity onPress={onScanPress} style={styles.scanButton}>
           <Zap size={20} color={modernTheme.primary} />
         </TouchableOpacity>
-      )}
+      {/* )} */}
     </View>
   );
 };

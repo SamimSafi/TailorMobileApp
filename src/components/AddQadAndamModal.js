@@ -1,20 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
-    Modal,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
-    TouchableOpacity,
     View,
 } from 'react-native';
+import { useLanguage } from '../hooks/useLanguage';
 import { createQadAndam } from '../services/api';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernInputEnhanced from './ui/ModernInputEnhanced';
+import ModernModal from './ui/ModernModal';
 
 const qadAndamTypes = ['Kala', 'Darishi', 'Waskat', 'Kurti'];
 
@@ -184,6 +182,7 @@ const fieldConfigs = {
 };
 
 const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
+  const { t } = useLanguage();
   const [qadAndamType, setQadAndamType] = useState('Kala');
   const [measurements, setMeasurements] = useState({});
   const [totalAmount, setTotalAmount] = useState('');
@@ -196,11 +195,11 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
 
   const validateForm = useCallback(() => {
     if (!totalAmount.trim()) {
-      Alert.alert('Validation Error', 'Total amount is required');
+      Alert.alert(t('common.error'), t('validation.required'));
       return false;
     }
     return true;
-  }, [totalAmount]);
+  }, [totalAmount, t]);
 
   const handleMeasurementChange = (field, value) => {
     setMeasurements((prev) => ({
@@ -236,7 +235,7 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
       });
 
       console.log('✓ Qad Andam created successfully:', response.data);
-      Alert.alert('Success', 'Measurement registered successfully');
+      Alert.alert(t('common.success'), t('qadAndam.measurementAdded'));
 
       // Reset form
       setMeasurements({});
@@ -252,7 +251,7 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('Error creating qad andam:', error);
-      Alert.alert('Error', error.message || 'Failed to register measurement');
+      Alert.alert(t('common.error'), error.message || t('qadAndam.measurementAdded'));
     } finally {
       setLoading(false);
     }
@@ -269,25 +268,12 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
     }
   }, [loading, onClose]);
 
-  if (!visible) {
-    return null;
-  }
-
   return (
-    <Modal
+    <ModernModal
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+      onClose={handleClose}
+      title={t('qadAndam.addMeasurement')}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} disabled={loading}>
-            <Ionicons name="close" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Measurement (Qad Andam)</Text>
-          <View style={{ width: 24 }} />
-        </View>
 
         <ScrollView
           style={styles.content}
@@ -296,7 +282,7 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
         >
           {/* Qad Andam Type Selection */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Measurement Type *</Text>
+            <Text style={styles.label}>{t('qadAndam.measurement')} *</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={qadAndamType}
@@ -313,7 +299,7 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
 
           {/* Measurements Fields */}
           <View style={styles.measurementsSection}>
-            <Text style={styles.sectionTitle}>Measurements</Text>
+            <Text style={styles.sectionTitle}>{t('qadAndam.measurements')}</Text>
             {fieldsForType.map((fieldName) => {
               const config = fieldConfigs[fieldName];
               if (!config) return null;
@@ -329,7 +315,7 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
                         enabled={!loading}
                         style={styles.picker}
                       >
-                        <Picker.Item label="-- Select --" value="" />
+                        <Picker.Item label={t('common.select')} value="" />
                         {config.options.map((option) => (
                           <Picker.Item key={option} label={option} value={option} />
                         ))}
@@ -340,208 +326,126 @@ const AddQadAndamModal = ({ visible, onClose, customerId, onSuccess }) => {
               }
 
               return (
-                <View key={fieldName} style={styles.formGroup}>
-                  <Text style={styles.label}>{config.label}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={`Enter ${config.label}`}
-                    placeholderTextColor={colors.lightGray}
-                    value={measurements[fieldName] || ''}
-                    onChangeText={(text) => handleMeasurementChange(fieldName, text)}
-                    keyboardType="decimal-pad"
-                    editable={!loading}
-                  />
-                </View>
+                <ModernInputEnhanced
+                  key={fieldName}
+                  label={config.label}
+                  placeholder={config.label}
+                  value={measurements[fieldName] || ''}
+                  onChangeText={(text) => handleMeasurementChange(fieldName, text)}
+                  keyboardType="decimal-pad"
+                  editable={!loading}
+                />
               );
             })}
           </View>
 
           {/* Amount Fields */}
           <View style={styles.amountSection}>
-            <Text style={styles.sectionTitle}>Amount & Details</Text>
+            <Text style={styles.sectionTitle}>{t('invoice.items')}</Text>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Total Amount *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter total amount"
-                placeholderTextColor={colors.lightGray}
-                value={totalAmount}
-                onChangeText={setTotalAmount}
-                keyboardType="decimal-pad"
-                editable={!loading}
-              />
-            </View>
+            <ModernInputEnhanced
+              label={t('invoice.total')}
+              placeholder={t('invoice.total')}
+              value={totalAmount}
+              onChangeText={setTotalAmount}
+              keyboardType="decimal-pad"
+              editable={!loading}
+              required
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Paid Amount</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter paid amount"
-                placeholderTextColor={colors.lightGray}
-                value={paidAmount}
-                onChangeText={setPaidAmount}
-                keyboardType="decimal-pad"
-                editable={!loading}
-              />
-            </View>
+            <ModernInputEnhanced
+              label={t('payment.paymentAmount')}
+              placeholder={t('payment.paymentAmount')}
+              value={paidAmount}
+              onChangeText={setPaidAmount}
+              keyboardType="decimal-pad"
+              editable={!loading}
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Pieces (Jora Count)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter number of pieces"
-                placeholderTextColor={colors.lightGray}
-                value={joraCount}
-                onChangeText={setJoraCount}
-                keyboardType="number-pad"
-                editable={!loading}
-              />
-            </View>
+            <ModernInputEnhanced
+              label={t('qadAndam.measurement')}
+              placeholder={t('qadAndam.measurement')}
+              value={joraCount}
+              onChangeText={setJoraCount}
+              keyboardType="number-pad"
+              editable={!loading}
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.multilineInput]}
-                placeholder="Enter description (optional)"
-                placeholderTextColor={colors.lightGray}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={3}
-                editable={!loading}
-              />
-            </View>
+            <ModernInputEnhanced
+              label={t('qadAndam.notes')}
+              placeholder={t('qadAndam.notes')}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
+              editable={!loading}
+            />
           </View>
 
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Ionicons name="checkmark" size={20} color={colors.white} />
-            )}
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Creating...' : 'Register Measurement'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.cancelButton, loading && styles.cancelButtonDisabled]}
-            onPress={handleClose}
-            disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <ModernButtonEnhanced
+              title={loading ? t('common.loading') : t('qadAndam.addMeasurement')}
+              onPress={handleSubmit}
+              variant="primary"
+              size="lg"
+              disabled={loading}
+              loading={loading}
+              fullWidth
+            />
+            <ModernButtonEnhanced
+              title={t('common.cancel')}
+              onPress={handleClose}
+              variant="secondary"
+              size="lg"
+              disabled={loading}
+              fullWidth
+            />
+          </View>
         </ScrollView>
-      </View>
-    </Modal>
+    </ModernModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    marginTop: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
   content: {
-    flex: 1,
-    padding: spacing.md,
+    padding: enhancedTheme.spacing.lg,
   },
   formGroup: {
-    marginBottom: spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    color: colors.text,
-  },
-  multilineInput: {
-    paddingVertical: spacing.md,
-    textAlignVertical: 'top',
+    fontSize: enhancedTheme.typography.labelLarge.fontSize,
+    fontWeight: enhancedTheme.typography.labelLarge.fontWeight,
+    color: enhancedTheme.colors.neutral700,
+    marginBottom: enhancedTheme.spacing.xs,
   },
   pickerContainer: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
+    backgroundColor: enhancedTheme.colors.surface,
+    borderRadius: enhancedTheme.borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.lightGray,
+    borderColor: enhancedTheme.colors.neutral300,
     overflow: 'hidden',
   },
   picker: {
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-    marginBottom: spacing.md,
-    marginTop: spacing.lg,
+    fontSize: enhancedTheme.typography.headlineMedium.fontSize,
+    fontWeight: enhancedTheme.typography.headlineMedium.fontWeight,
+    color: enhancedTheme.colors.primary,
+    marginBottom: enhancedTheme.spacing.md,
+    marginTop: enhancedTheme.spacing.lg,
   },
   measurementsSection: {
-    paddingBottom: spacing.lg,
+    paddingBottom: enhancedTheme.spacing.lg,
   },
   amountSection: {
-    paddingBottom: spacing.lg,
+    paddingBottom: enhancedTheme.spacing.lg,
   },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  cancelButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  cancelButtonDisabled: {
-    opacity: 0.5,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
+  buttonContainer: {
+    gap: enhancedTheme.spacing.md,
+    marginTop: enhancedTheme.spacing.xl,
+    marginBottom: enhancedTheme.spacing.xl,
   },
 });
 

@@ -2,31 +2,35 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, FileText, Mail, Plus, RefreshCw, Shirt } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddQadAndamModal from '../components/AddQadAndamModal';
 import InvoiceList from '../components/InvoiceList';
 import PaymentModal from '../components/PaymentModal';
 import QadAndamList from '../components/QadAndamList';
+import QadAndamReceiptModal from '../components/QadAndamReceiptModal';
 import SmsExample from '../components/SmsExample';
 import ModernBadge from '../components/ui/ModernBadge';
 import ModernButtonEnhanced from '../components/ui/ModernButtonEnhanced';
-import ModernCard from '../components/ui/ModernCard';
 import ModernEmptyState from '../components/ui/ModernEmptyState';
 import ModernLoading from '../components/ui/ModernLoading';
-import QadAndamReceiptModal from '../components/QadAndamReceiptModal';
+import businessInfoDefaults from '../constants/businessInfo';
+import { useLanguage } from '../hooks/useLanguage';
+import { ensureBusinessInfoInitialized, getStoredBusinessInfo } from '../services/businessInfoService';
 import { useCustomerStore } from '../store/customerStore';
 import { enhancedTheme } from '../theme/enhancedTheme';
 import { formatCurrency, formatPhoneNumber } from '../utils/formatters';
 import { toastError, toastSuccess } from '../utils/toastManager';
-import businessInfo from '../constants/businessInfo';
 
 const CustomerDetailsScreen = ({ navigation, route }) => {
+  // Localization
+  const { t } = useLanguage();
+  
   const customer = useCustomerStore((state) => state.selectedCustomer);
   const qadAndams = useCustomerStore((state) => state.qadAndams);
   const invoices = useCustomerStore((state) => state.invoices);
@@ -44,6 +48,29 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   const [addQadAndamModalVisible, setAddQadAndamModalVisible] = useState(false);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [selectedReceiptQadAndam, setSelectedReceiptQadAndam] = useState(null);
+  const [businessInfo, setBusinessInfo] = useState({
+    ...businessInfoDefaults,
+    logos: {
+      primary: '',
+    },
+  });
+  useEffect(() => {
+    let mounted = true;
+    ensureBusinessInfoInitialized()
+      .then((info) => info || getStoredBusinessInfo())
+      .then((info) => {
+        if (mounted && info) {
+          setBusinessInfo(info);
+        }
+      })
+      .catch((error) => {
+        console.warn('[CustomerDetailsScreen] Failed to load business info', error);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const customerId = customer?.customerId;
 
   // Reload data when screen is focused
@@ -117,7 +144,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   if (!customer) {
     return (
       <SafeAreaView style={styles.container}>
-        <ModernLoading visible={true} message="Loading customer..." />
+        <ModernLoading visible={true} message={t('common.loading')} />
       </SafeAreaView>
     );
   }
@@ -138,33 +165,51 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
   const customerAtAGlance = useMemo(
     () => [
       {
-        label: 'Serial',
+        label: t('common.search'),
         value: customer.serialNumber || customer.serial || '—',
       },
       {
-        label: 'Phone',
+        label: t('customer.phone'),
         value: formatPhoneNumber(primaryContact) || '—',
       },
       {
-        label: 'Address',
+        label: t('customer.address'),
         value: customer.address || '—',
       },
       {
-        label: 'Invoices',
+        label: t('invoice.items'),
         value: invoices.length.toString(),
       },
       {
-        label: 'Measurements',
+        label: t('qadAndam.measurements'),
         value: qadAndams.length.toString(),
       },
     ],
-    [customer, primaryContact, invoices.length, qadAndams.length]
+    [customer, primaryContact, invoices.length, qadAndams.length, t]
   );
 
   const handleViewReceipt = (qadAndam) => {
     setSelectedReceiptQadAndam(qadAndam);
     setReceiptModalVisible(true);
   };
+
+  const selectedReceiptInvoice = useMemo(() => {
+    if (!selectedReceiptQadAndam) {
+      return null;
+    }
+    const identifiers = [
+      selectedReceiptQadAndam.id,
+      selectedReceiptQadAndam._id,
+      selectedReceiptQadAndam.qadAndamId,
+    ].filter(Boolean);
+
+    return (
+      invoices.find((inv) => identifiers.includes(inv.qadAndamId)) ||
+      invoices.find((inv) => identifiers.includes(inv.qadAndam?.id)) ||
+      invoices.find((inv) => identifiers.includes(inv.id) || identifiers.includes(inv._id)) ||
+      null
+    );
+  }, [selectedReceiptQadAndam, invoices]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -178,8 +223,8 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
             <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { color: '#ffffff' }]}>Customer Details</Text>
-            <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>View & manage customer info</Text>
+            <Text style={[styles.headerTitle, { color: '#ffffff' }]}>{t('customer.details')}</Text>
+            <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>{t('customer.viewInvoices')}</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -232,7 +277,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
         {/* Stats Chips */}
         <View style={styles.statsRow}>
           <View style={[styles.statChip, { borderColor: enhancedTheme.colors.success }]}>
-            <Text style={styles.statChipLabel}>Balance</Text>
+            <Text style={styles.statChipLabel}>{t('customer.balance')}</Text>
             <Text
               style={[
                 styles.statChipValue,
@@ -244,7 +289,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={[styles.statChip, { borderColor: totalDue > 0 ? enhancedTheme.colors.error : enhancedTheme.colors.success }]}>
-            <Text style={styles.statChipLabel}>Total Due</Text>
+            <Text style={styles.statChipLabel}>{t('payment.amountToPay')}</Text>
             <Text
               style={[
                 styles.statChipValue,
@@ -256,7 +301,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={[styles.statChip, { borderColor: enhancedTheme.colors.primary }]}>
-            <Text style={styles.statChipLabel}>Invoices</Text>
+            <Text style={styles.statChipLabel}>{t('invoice.items')}</Text>
             <Text style={[styles.statChipValue, { color: enhancedTheme.colors.primary }]}>
               {invoices.length}
             </Text>
@@ -279,7 +324,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                 activeTab === 'items' && styles.tabTextActive,
               ]}
             >
-              Measurements
+              {t('qadAndam.measurements')}
             </Text>
             <ModernBadge 
               text={qadAndams.length.toString()}
@@ -302,7 +347,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                 activeTab === 'invoices' && styles.tabTextActive,
               ]}
             >
-              Invoices
+              {t('invoice.items')}
             </Text>
             <ModernBadge 
               text={invoices.length.toString()}
@@ -315,15 +360,15 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
         {/* Tab Content */}
         <View style={styles.tabContent}>
           {loading ? (
-            <ModernLoading visible={true} message="Loading data..." />
+            <ModernLoading visible={true} message={t('common.loading')} />
           ) : activeTab === 'items' ? (
             <>
               {qadAndams.length === 0 ? (
                 <ModernEmptyState
                   icon={<Shirt color={enhancedTheme.colors.neutral400} size={48} />}
-                  title="No Measurements"
-                  description="Register your first measurement to get started"
-                  actionText="Register Measurement"
+                  title={t('qadAndam.noMeasurements')}
+                  description={t('emptyState.createFirst')}
+                  actionText={t('qadAndam.addMeasurement')}
                   onActionPress={() => setAddQadAndamModalVisible(true)}
                 />
               ) : (
@@ -336,7 +381,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                   />
                   <View style={styles.buttonGroup}>
                     <ModernButtonEnhanced
-                      title="Create Invoice"
+                      title={t('qadAndam.createInvoice')}
                       icon={Plus}
                       variant="primary"
                       size="lg"
@@ -349,7 +394,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
                       }}
                     />
                     <ModernButtonEnhanced
-                      title="Add Measurement"
+                      title={t('qadAndam.addMeasurement')}
                       icon={Plus}
                       variant="secondary"
                       size="lg"
@@ -408,7 +453,7 @@ const CustomerDetailsScreen = ({ navigation, route }) => {
         }}
         qadAndam={selectedReceiptQadAndam}
         customer={customer}
-        invoice={selectedReceiptQadAndam && invoices.find((inv) => inv.qadAndamId === selectedReceiptQadAndam.id)}
+        invoice={selectedReceiptInvoice}
         businessInfo={businessInfo}
       />
     </SafeAreaView>
@@ -507,9 +552,11 @@ const styles = StyleSheet.create({
     gap: enhancedTheme.spacing.md,
     marginHorizontal: enhancedTheme.spacing.lg,
     marginBottom: enhancedTheme.spacing.lg,
+    flexWrap: 'wrap',
   },
   statChip: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '30%',
     borderWidth: 1,
     borderRadius: enhancedTheme.borderRadius.md,
     paddingVertical: enhancedTheme.spacing.md,

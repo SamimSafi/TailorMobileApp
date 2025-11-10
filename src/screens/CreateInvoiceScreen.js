@@ -1,24 +1,29 @@
 import { CheckCircle, ChevronLeft, Share2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import InvoiceForm from '../components/InvoiceForm';
 import ModernBadge from '../components/ui/ModernBadge';
-import ModernButton from '../components/ui/ModernButton';
+import ModernButtonEnhanced from '../components/ui/ModernButtonEnhanced';
 import ModernModal from '../components/ui/ModernModal';
+import { useLanguage } from '../hooks/useLanguage';
 import { useCustomerStore } from '../store/customerStore';
 import { useInvoiceStore } from '../store/invoiceStore';
-import { modernTheme, shadows, spacing, typography } from '../theme/modernTheme';
+import { enhancedTheme, spacing, typography } from '../theme/enhancedTheme';
+import { modernTheme } from '../theme/modernTheme';
 import { formatCurrency } from '../utils/formatters';
 import { toastError, toastSuccess } from '../utils/toastManager';
 
 const CreateInvoiceScreen = ({ navigation, route }) => {
+  // Localization
+  const { t } = useLanguage();
+  
   const { customer, qadAndam } = route.params;
   const invoiceStore = useInvoiceStore();
   const customerStore = useCustomerStore();
@@ -67,17 +72,17 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, shadows.medium]}>
+      <View style={[styles.header, { backgroundColor: enhancedTheme.colors.primary, ...enhancedTheme.shadows.lg }]}>
         <View style={styles.headerContent}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <ChevronLeft size={24} color={modernTheme.white} />
+            <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Create Invoice</Text>
-            <Text style={styles.headerSubtitle}>Fill in the invoice details</Text>
+            <Text style={[styles.headerTitle, { color: '#ffffff' }]}>{t('invoice.title')}</Text>
+            <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>{t('common.search')}</Text>
           </View>
         </View>
       </View>
@@ -89,7 +94,7 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
       >
         {/* Customer Info Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Invoice Details</Text>
+          <Text style={styles.sectionTitle}>{t('invoice.invoiceNumber')}</Text>
           <View style={styles.badgesContainer}>
             <ModernBadge 
               text={customer.customerName}
@@ -120,8 +125,8 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
 
         {/* Submit Button */}
         <View style={styles.buttonContainer}>
-          <ModernButton
-            text={invoiceStore.loading ? "Creating Invoice..." : "Create Invoice"}
+          <ModernButtonEnhanced
+            title={invoiceStore.loading ? t('common.loading') : t('invoice.title')}
             onPress={handleSubmit}
             variant="primary"
             size="lg"
@@ -136,31 +141,31 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
       <ModernModal
         visible={successModalVisible}
         onClose={handleCloseSuccess}
-        title="🎉 Invoice Created!"
-        subtitle="Your invoice has been successfully created"
+        title={"🎉 " + t('invoice.invoiceCreated')}
+        subtitle={t('invoice.invoiceSaved')}
         size="md"
       >
         {invoiceStore.createdInvoice && (
           <View style={styles.successContent}>
             <View style={styles.successIcon}>
-              <CheckCircle size={64} color={modernTheme.success} />
+              <CheckCircle size={64} color={enhancedTheme.colors.success} />
             </View>
 
-            <View style={styles.invoiceDetails}>
+            <View style={[styles.invoiceDetails, { backgroundColor: enhancedTheme.colors.neutral100 }]}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Invoice Number</Text>
+                <Text style={styles.detailLabel}>{t('invoice.invoiceNumber')}</Text>
                 <Text style={styles.detailValue}>
                   {invoiceStore.createdInvoice.invoiceNumber}
                 </Text>
               </View>
               <View style={[styles.detailRow, styles.detailRowBorder]}>
-                <Text style={styles.detailLabel}>Total Amount</Text>
-                <Text style={[styles.detailValue, { color: modernTheme.success }]}>
+                <Text style={styles.detailLabel}>{t('invoice.total')}</Text>
+                <Text style={[styles.detailValue, { color: enhancedTheme.colors.success }]}>
                   {formatCurrency(invoiceStore.createdInvoice.totalAmount)}
                 </Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Paid Amount</Text>
+                <Text style={styles.detailLabel}>{t('payment.paymentAmount')}</Text>
                 <Text style={styles.detailValue}>
                   {formatCurrency(invoiceStore.createdInvoice.paidAmount)}
                 </Text>
@@ -168,16 +173,16 @@ const CreateInvoiceScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.modalButtonContainer}>
-              <ModernButton
-                text="Share"
+              <ModernButtonEnhanced
+                title={t('actions.share')}
                 onPress={handleShare}
-                variant="outline"
+                variant="secondary"
                 size="md"
                 icon={Share2}
                 fullWidth
               />
-              <ModernButton
-                text="Done"
+              <ModernButtonEnhanced
+                title={t('common.ok')}
                 onPress={handleCloseSuccess}
                 variant="primary"
                 size="md"

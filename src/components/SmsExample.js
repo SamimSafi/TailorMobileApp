@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import {
-    checkSmsAvailability,
-    getAvailableSims,
-    sendSmsToCustomer,
+  checkSmsAvailability,
+  getAvailableSims,
+  sendSmsToCustomer,
 } from '../services/nativeSmsService';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernInputEnhanced from './ui/ModernInputEnhanced';
+import ModernModal from './ui/ModernModal';
 
 const SmsExample = ({ visible, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -174,54 +173,41 @@ const SmsExample = ({ visible, onClose }) => {
   const smsCount = Math.ceil(charCount / 160) || 1;
 
   return (
-    <Modal
+    <ModernModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="formSheet"
-      onRequestClose={handleReset}
+      onClose={handleReset}
+      title="Send SMS (Native)"
+      headerAction={
+        <ModernButtonEnhanced
+          title={isSending ? 'Sending...' : 'Send'}
+          onPress={handleSendSms}
+          disabled={isSending || !smsAvailable || !selectedSim}
+          variant="primary"
+          size="small"
+          loading={isSending}
+        />
+      }
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleReset}>
-            <Text style={styles.cancelButton}>Close</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Send SMS (Native)</Text>
-          <TouchableOpacity
-            onPress={handleSendSms}
-            disabled={isSending || !smsAvailable || !selectedSim}
-          >
-            <Text
-              style={[
-                styles.sendButton,
-                (isSending || !smsAvailable || !selectedSim) &&
-                  styles.sendButtonDisabled,
-              ]}
-            >
-              {isSending ? 'Sending...' : 'Send'}
-            </Text>
-          </TouchableOpacity>
+      {loading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={enhancedTheme.colors.primary} />
+          <Text style={styles.loadingText}>Initializing SMS service...</Text>
         </View>
-
-        {loading ? (
-          <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Initializing SMS service...</Text>
-          </View>
-        ) : !smsAvailable ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.errorText}>❌ SMS not available</Text>
-            <Text style={styles.errorSubtext}>
-              Please grant SMS permissions in settings
-            </Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={initializeSms}
-            >
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      ) : !smsAvailable ? (
+        <View style={styles.centerContent}>
+          <Text style={styles.errorText}>❌ SMS not available</Text>
+          <Text style={styles.errorSubtext}>
+            Please grant SMS permissions in settings
+          </Text>
+          <ModernButtonEnhanced
+            title="Retry"
+            onPress={initializeSms}
+            variant="primary"
+            size="md"
+          />
+        </View>
+      ) : (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
                 📱 This is a native SMS implementation using Android SmsManager.
@@ -323,11 +309,9 @@ const SmsExample = ({ visible, onClose }) => {
             )}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
+              <ModernInputEnhanced
                 placeholder="Enter phone number"
-                placeholderTextColor={colors.textSecondary}
+                label="Phone Number"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 editable={!isSending}
@@ -342,14 +326,14 @@ const SmsExample = ({ visible, onClose }) => {
                   {charCount}/160 ({smsCount} SMS)
                 </Text>
               </View>
-              <TextInput
-                style={styles.messageInput}
+              <ModernInputEnhanced
                 placeholder="Type your message..."
-                placeholderTextColor={colors.textSecondary}
+                label="Message"
                 value={message}
                 onChangeText={setMessage}
                 editable={!isSending}
                 multiline
+                numberOfLines={4}
                 maxLength={480}
               />
             </View>
@@ -390,104 +374,53 @@ const SmsExample = ({ visible, onClose }) => {
             <View style={styles.footer} />
           </ScrollView>
         )}
-
-        {isSending && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        )}
-      </View>
-    </Modal>
+    </ModernModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginTop: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  cancelButton: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  sendButton: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  sendButtonDisabled: {
-    opacity: 0.6,
-  },
   content: {
-    flex: 1,
-    padding: spacing.lg,
+    padding: enhancedTheme.spacing.lg,
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: enhancedTheme.spacing.lg,
   },
   loadingText: {
-    marginTop: spacing.lg,
+    marginTop: enhancedTheme.spacing.lg,
     fontSize: 14,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   errorText: {
     fontSize: 16,
-    color: colors.error || '#FF6B6B',
+    color: enhancedTheme.colors.error,
     fontWeight: '600',
   },
   errorSubtext: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-  retryButton: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.sm,
+    marginBottom: enhancedTheme.spacing.lg,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: enhancedTheme.spacing.xl,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.md,
   },
   infoBox: {
-    backgroundColor: colors.infoBackground || '#E3F2FD',
+    backgroundColor: enhancedTheme.colors.neutral50,
     borderLeftWidth: 5,
-    borderLeftColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 8,
-    marginBottom: spacing.xl,
-    shadowColor: '#000',
+    borderLeftColor: enhancedTheme.colors.primary,
+    padding: enhancedTheme.spacing.md,
+    borderRadius: enhancedTheme.borderRadius.md,
+    marginBottom: enhancedTheme.spacing.xl,
+    shadowColor: enhancedTheme.colors.neutral900,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -495,35 +428,35 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral700,
     lineHeight: 20,
     fontWeight: '500',
   },
   simGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: enhancedTheme.spacing.md,
   },
   simCard: {
     flex: 1,
     minWidth: '48%',
-    backgroundColor: colors.surface,
+    backgroundColor: enhancedTheme.colors.neutral50,
     borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.lg,
+    padding: enhancedTheme.spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: enhancedTheme.colors.neutral900,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   simCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '15',
+    borderColor: enhancedTheme.colors.primary,
+    backgroundColor: enhancedTheme.colors.primary + '15',
     borderWidth: 2,
     shadowOpacity: 0.15,
     elevation: 4,
@@ -534,40 +467,40 @@ const styles = StyleSheet.create({
   simCardTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   simCardTitleSelected: {
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   simCardPhone: {
     fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   simCardPhoneSelected: {
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   simCardCarrier: {
     fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   simCardCarrierSelected: {
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   checkmark: {
     fontSize: 18,
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
     fontWeight: 'bold',
   },
   simDetailsBox: {
-    backgroundColor: colors.surface,
+    backgroundColor: enhancedTheme.colors.neutral0,
     borderWidth: 1.5,
-    borderColor: colors.primary + '30',
-    borderRadius: 10,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
-    shadowColor: colors.primary,
+    borderColor: enhancedTheme.colors.primary + '30',
+    borderRadius: enhancedTheme.borderRadius.md,
+    padding: enhancedTheme.spacing.md,
+    marginBottom: enhancedTheme.spacing.xl,
+    shadowColor: enhancedTheme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -576,128 +509,88 @@ const styles = StyleSheet.create({
   simDetailsTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
+    color: enhancedTheme.colors.primary,
+    marginBottom: enhancedTheme.spacing.md,
+    paddingBottom: enhancedTheme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.primary + '20',
+    borderBottomColor: enhancedTheme.colors.primary + '20',
   },
   simDetail: {
     fontSize: 13,
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.md,
     lineHeight: 18,
   },
   detailLabel: {
     fontWeight: '700',
-    color: colors.primary,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: spacing.md,
-    fontSize: 14,
-    color: colors.text,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    color: enhancedTheme.colors.primary,
   },
   messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   charCount: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
-    backgroundColor: colors.infoBackground || '#E3F2FD',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 6,
-  },
-  messageInput: {
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: spacing.md,
-    minHeight: 100,
-    fontSize: 14,
-    color: colors.text,
-    textAlignVertical: 'top',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    color: enhancedTheme.colors.primary,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.xs,
+    borderRadius: enhancedTheme.borderRadius.sm,
   },
   resultBox: {
-    borderRadius: 12,
-    padding: spacing.lg,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-    shadowColor: '#000',
+    borderRadius: enhancedTheme.borderRadius.lg,
+    padding: enhancedTheme.spacing.lg,
+    marginTop: enhancedTheme.spacing.lg,
+    marginBottom: enhancedTheme.spacing.xl,
+    shadowColor: enhancedTheme.colors.neutral900,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   resultBoxSuccess: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: enhancedTheme.colors.success + '20',
     borderLeftWidth: 5,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: enhancedTheme.colors.success,
   },
   resultBoxError: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: enhancedTheme.colors.error + '20',
     borderLeftWidth: 5,
-    borderLeftColor: '#F44336',
+    borderLeftColor: enhancedTheme.colors.error,
   },
   resultTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: spacing.sm,
-    color: colors.text,
+    marginBottom: enhancedTheme.spacing.sm,
+    color: enhancedTheme.colors.neutral900,
   },
   resultMessage: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: spacing.sm,
+    marginBottom: enhancedTheme.spacing.sm,
   },
   resultMessageSuccess: {
-    color: '#2E7D32',
+    color: enhancedTheme.colors.success,
   },
   resultMessageError: {
-    color: '#C62828',
+    color: enhancedTheme.colors.error,
   },
   resultDetails: {
     fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginBottom: enhancedTheme.spacing.xs,
   },
   resultTimestamp: {
     fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.sm,
     fontStyle: 'italic',
   },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   footer: {
-    height: spacing.lg,
+    height: enhancedTheme.spacing.lg,
   },
 });
 

@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { Calendar } from 'lucide-react-native';
+import { useState } from 'react';
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { useLanguage } from '../hooks/useLanguage';
+import { enhancedTheme } from '../theme/enhancedTheme';
 import { validateInvoiceForm } from '../utils/validators';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernInputEnhanced from './ui/ModernInputEnhanced';
 
 const InvoiceForm = ({
   invoiceData,
@@ -19,6 +21,7 @@ const InvoiceForm = ({
   onSubmit,
   loading = false,
 }) => {
+  const { t } = useLanguage();
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [showReturnDatePicker, setShowReturnDatePicker] = useState(false);
   const [errors, setErrors] = useState({});
@@ -43,7 +46,7 @@ const InvoiceForm = ({
     const validation = validateInvoiceForm(invoiceData);
     if (!validation.isValid) {
       setErrors(validation.errors);
-      Alert.alert('Validation Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('validation.required'));
       return;
     }
     setErrors({});
@@ -51,7 +54,7 @@ const InvoiceForm = ({
   };
 
   const formatDateForDisplay = (dateString) => {
-    if (!dateString) return 'Select Date';
+    if (!dateString) return t('dateTime.today');
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -64,51 +67,39 @@ const InvoiceForm = ({
     <ScrollView style={styles.container}>
       <View style={styles.form}>
         {/* Total Amount */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Total Amount <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, errors.totalAmount && styles.inputError]}
-            placeholder="Enter total amount"
-            placeholderTextColor={colors.darkGray}
-            value={invoiceData.totalAmount}
-            onChangeText={(value) => onFieldChange('totalAmount', value)}
-            keyboardType="decimal-pad"
-            editable={!loading}
-          />
-          {errors.totalAmount && (
-            <Text style={styles.errorText}>{errors.totalAmount}</Text>
-          )}
-        </View>
+        <ModernInputEnhanced
+          label={t('invoice.total')}
+          placeholder={t('invoice.total')}
+          value={invoiceData.totalAmount}
+          onChangeText={(value) => onFieldChange('totalAmount', value)}
+          keyboardType="decimal-pad"
+          editable={!loading}
+          required
+          error={errors.totalAmount}
+        />
 
         {/* Paid Amount */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Paid Amount</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter paid amount"
-            placeholderTextColor={colors.darkGray}
-            value={invoiceData.paidAmount}
-            onChangeText={(value) => onFieldChange('paidAmount', value)}
-            keyboardType="decimal-pad"
-            editable={!loading}
-          />
-          {errors.paidAmount && (
-            <Text style={styles.errorText}>{errors.paidAmount}</Text>
-          )}
-        </View>
+        <ModernInputEnhanced
+          label={t('payment.paymentAmount')}
+          placeholder={t('payment.paymentAmount')}
+          value={invoiceData.paidAmount}
+          onChangeText={(value) => onFieldChange('paidAmount', value)}
+          keyboardType="decimal-pad"
+          editable={!loading}
+          error={errors.paidAmount}
+        />
 
         {/* Due Date */}
         <View style={styles.field}>
           <Text style={styles.label}>
-            Due Date <Text style={styles.required}>*</Text>
+            {t('invoice.dueDate')} <Text style={styles.required}>*</Text>
           </Text>
           <TouchableOpacity
-            style={[styles.dateButton, errors.dueDate && styles.inputError]}
+            style={[styles.dateButton, errors.dueDate && styles.dateButtonError]}
             onPress={() => setShowDueDatePicker(true)}
             disabled={loading}
           >
+            <Calendar size={18} color={enhancedTheme.colors.neutral600} />
             <Text style={styles.dateButtonText}>
               {formatDateForDisplay(invoiceData.dueDate)}
             </Text>
@@ -134,13 +125,14 @@ const InvoiceForm = ({
         {/* Return Date */}
         <View style={styles.field}>
           <Text style={styles.label}>
-            Return Date <Text style={styles.required}>*</Text>
+            {t('dateTime.today')} <Text style={styles.required}>*</Text>
           </Text>
           <TouchableOpacity
-            style={[styles.dateButton, errors.returnDate && styles.inputError]}
+            style={[styles.dateButton, errors.returnDate && styles.dateButtonError]}
             onPress={() => setShowReturnDatePicker(true)}
             disabled={loading}
           >
+            <Calendar size={18} color={enhancedTheme.colors.neutral600} />
             <Text style={styles.dateButtonText}>
               {formatDateForDisplay(invoiceData.returnDate)}
             </Text>
@@ -164,32 +156,26 @@ const InvoiceForm = ({
         )}
 
         {/* Jora Count */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Jora Count</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter jora count"
-            placeholderTextColor={colors.darkGray}
-            value={invoiceData.joraCount}
-            onChangeText={(value) => onFieldChange('joraCount', value)}
-            keyboardType="number-pad"
-            editable={!loading}
-          />
-          {errors.joraCount && (
-            <Text style={styles.errorText}>{errors.joraCount}</Text>
-          )}
-        </View>
+        <ModernInputEnhanced
+          label={t('qadAndam.measurements')}
+          placeholder={t('qadAndam.measurements')}
+          value={invoiceData.joraCount}
+          onChangeText={(value) => onFieldChange('joraCount', value)}
+          keyboardType="number-pad"
+          editable={!loading}
+          error={errors.joraCount}
+        />
 
         {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Creating Invoice...' : 'Create Invoice'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.submitContainer}>
+          <ModernButtonEnhanced
+            title={loading ? t('common.loading') : t('invoice.title')}
+            variant="primary"
+            onPress={handleSubmit}
+            disabled={loading}
+            loading={loading}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -198,69 +184,51 @@ const InvoiceForm = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: enhancedTheme.colors.neutral50,
   },
   form: {
-    padding: spacing.md,
+    padding: enhancedTheme.spacing.lg,
   },
   field: {
-    marginBottom: spacing.lg,
+    marginBottom: enhancedTheme.spacing.lg,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.sm,
   },
   required: {
-    color: colors.error,
-  },
-  input: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-  },
-  inputError: {
-    borderColor: colors.error,
+    color: enhancedTheme.colors.error,
   },
   dateButton: {
-    backgroundColor: colors.white,
+    backgroundColor: enhancedTheme.colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    justifyContent: 'center',
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: enhancedTheme.spacing.md,
+  },
+  dateButtonError: {
+    borderColor: enhancedTheme.colors.error,
   },
   dateButtonText: {
     fontSize: 16,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
+    flex: 1,
   },
   errorText: {
-    color: colors.error,
+    color: enhancedTheme.colors.error,
     fontSize: 12,
-    marginTop: spacing.xs,
+    marginTop: enhancedTheme.spacing.xs,
   },
-  submitButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+  submitContainer: {
+    marginTop: enhancedTheme.spacing.xl,
+    marginBottom: enhancedTheme.spacing.lg,
   },
 });
 

@@ -1,17 +1,21 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base",  // App base, NOT module-scripts
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "~/*": ["./*"]  // Optional: For absolute imports
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts"  // Expo-specific types
+  ],
+  "exclude": [
+    "node_modules",  // CRUCIAL: Ignores all deps, including their tsconfigs
+    "**/__tests__/*",
+    "build"  // Or dist, if you have build outputs
   ]
 }

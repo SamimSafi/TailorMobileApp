@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
+console.log('🚀 [STARTUP] api.js - Module loading...');
+
 // Create axios client - baseURL will be set dynamically (NO DEFAULT)
 let apiClient = axios.create({
   timeout: 10000,
@@ -8,6 +10,8 @@ let apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+console.log('🚀 [STARTUP] api.js - Axios client created');
 
 /**
  * Initialize API client with stored server configuration
@@ -17,24 +21,28 @@ let apiClient = axios.create({
  * Can be called multiple times - will re-read from AsyncStorage if baseURL is not set
  */
 export const initializeApiClient = async () => {
+  console.log('🚀 [STARTUP] initializeApiClient() called');
+  
   // Skip if already initialized with a valid URL
   if (apiClient.defaults.baseURL) {
-    console.log('✓ API Client already initialized with URL:', apiClient.defaults.baseURL);
+    console.log('✅ [STARTUP] API Client already initialized with URL:', apiClient.defaults.baseURL);
     return;
   }
 
   try {
+    console.log('🚀 [STARTUP] initializeApiClient - Reading SERVER_URL from AsyncStorage...');
     const storedUrl = await AsyncStorage.getItem('SERVER_URL');
+    console.log('🚀 [STARTUP] initializeApiClient - Retrieved storedUrl:', storedUrl);
     
     if (storedUrl) {
       apiClient.defaults.baseURL = storedUrl;
-      console.log('✓ API Client initialized with user-configured URL:', storedUrl);
+      console.log('✅ [STARTUP] API Client initialized with user-configured URL:', storedUrl);
     } else {
-      console.warn('⚠ No stored server URL found. User must configure server in setup screen first.');
+      console.warn('⚠️ [STARTUP] No stored server URL found. User must configure server in setup screen first.');
       // Do NOT set a default - app requires user configuration
     }
   } catch (error) {
-    console.error('Error initializing API client:', error);
+    console.error('❌ [STARTUP] Error initializing API client:', error);
     // Do NOT fallback to any default - require user configuration
   }
 };
@@ -80,10 +88,11 @@ export const forceReinitializeApiClient = async () => {
 
 // Add token to requests AND ensure API is initialized
 apiClient.interceptors.request.use(async (config) => {
+  console.log('🚀 [API] Request interceptor triggered for:', config.url);
   try {
     // Safety check: Ensure baseURL is set before making request
     if (!config.baseURL && !apiClient.defaults.baseURL) {
-      console.warn('⚠ API not yet initialized, attempting initialization...');
+      console.warn('⚠️ [API] API not yet initialized, attempting initialization...');
       await initializeApiClient();
       
       // If still no baseURL after initialization, throw error
@@ -96,9 +105,10 @@ apiClient.interceptors.request.use(async (config) => {
     const token = await AsyncStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🚀 [API] Token added to request headers');
     }
   } catch (error) {
-    console.error('✗ Error in request interceptor:', error.message);
+    console.error('❌ [API] Error in request interceptor:', error.message);
     throw error;
   }
   return config;
@@ -106,10 +116,13 @@ apiClient.interceptors.request.use(async (config) => {
 
 // Handle errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('🚀 [API] Response received from:', response.config.url);
+    return response;
+  },
   (error) => {
     const message = error.response?.data?.message || error.message;
-    console.error('API Error:', message);
+    console.error('❌ [API] API Error:', message);
     throw new Error(message);
   }
 );

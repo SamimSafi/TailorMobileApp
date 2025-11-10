@@ -363,9 +363,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
-    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -373,12 +371,15 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useLanguage } from '../hooks/useLanguage';
 import { MESSAGE_TEMPLATES } from '../constants/messageTemplates';
 import { checkSmsAvailability, getAvailableSims, sendSmsToCustomer, sendSmsToMultipleCustomers } from '../services/nativeSmsService';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
+import ModernButtonEnhanced from './ui/ModernButtonEnhanced';
+import ModernModal from './ui/ModernModal';
 
 const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
+  const { t } = useLanguage();
   const [selectedTemplate, setSelectedTemplate] = useState('custom');
   const [messageContent, setMessageContent] = useState('');
   const [selectedCustomers, setSelectedCustomers] = useState(customer ? [customer] : []);
@@ -464,12 +465,12 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
 
   const handleSendMessage = async () => {
     if (!messageContent.trim()) {
-      Alert.alert('Empty Message', 'Please enter a message before sending');
+      Alert.alert(t('common.error'), t('messages.messageContent'));
       return;
     }
 
     if (selectedCustomers.length === 0) {
-      Alert.alert('No Customers', 'Please select at least one customer');
+      Alert.alert(t('common.error'), t('messages.noRecipients'));
       return;
     }
 
@@ -486,9 +487,9 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
         );
         
         Alert.alert(
-          'Success',
-          `Message sent to ${selectedCustomer.customerName}`,
-          [{ text: 'OK', onPress: handleReset }]
+          t('common.success'),
+          t('messages.messagesSent'),
+          [{ text: t('common.ok'), onPress: handleReset }]
         );
       } else {
         const results = await sendSmsToMultipleCustomers(
@@ -503,9 +504,9 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
 
         const successCount = results.filter(r => r.success).length;
         Alert.alert(
-          'Sending Complete',
-          `${successCount} out of ${results.length} messages sent successfully`,
-          [{ text: 'OK', onPress: handleReset }]
+          t('common.success'),
+          `${successCount} out of ${results.length} ${t('messages.messagesSent')}`,
+          [{ text: t('common.ok'), onPress: handleReset }]
         );
       }
 
@@ -513,7 +514,7 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
         onMessageSent();
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to send message');
+      Alert.alert(t('common.error'), error.message || t('messages.messageFailed'));
     } finally {
       setIsSending(false);
     }
@@ -530,37 +531,26 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
   const smsCount = Math.ceil(charCount / 160) || 1;
 
   return (
-    <Modal
+    <ModernModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="formSheet"
-      onRequestClose={handleReset}
+      onClose={handleReset}
+      title={t('messages.sendMessage')}
+      headerAction={
+        <ModernButtonEnhanced
+          title={isSending ? t('common.loading') : t('messages.sendMessage')}
+          variant="primary"
+          size="small"
+          onPress={handleSendMessage}
+          disabled={isSending || !smsAvailable}
+          loading={isSending}
+        />
+      }
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleReset}>
-            <Text style={styles.cancelButton}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Send Message</Text>
-          <TouchableOpacity 
-            onPress={handleSendMessage}
-            disabled={isSending || !smsAvailable}
-          >
-            <Text style={[
-              styles.sendButton,
-              (isSending || !smsAvailable) && styles.sendButtonDisabled
-            ]}>
-              {isSending ? 'Sending...' : 'Send'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Customer Info */}
           {selectedCustomers.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Recipients ({selectedCustomers.length})</Text>
+              <Text style={styles.sectionTitle}>{t('messages.recipientCount')} ({selectedCustomers.length})</Text>
               <View style={styles.recipientList}>
                 {selectedCustomers.map((c, index) => (
                   <View key={index} style={styles.recipientItem}>
@@ -575,7 +565,7 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
           {/* SIM Selection */}
           {availableSims.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Select SIM Card</Text>
+              <Text style={styles.sectionTitle}>{t('common.settings')}</Text>
               <View style={styles.simSelector}>
                 {availableSims.map((sim) => {
                   const displayCarrier = sim.carrierName || sim.name || `SIM ${sim.id + 1}`;
@@ -616,7 +606,7 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
 
           {/* Template Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Message Template</Text>
+            <Text style={styles.sectionTitle}>{t('messages.messageTemplate')}</Text>
             <ScrollView 
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -645,14 +635,14 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
           {/* Message Content */}
           <View style={styles.section}>
             <View style={styles.messageHeader}>
-              <Text style={styles.sectionTitle}>Message</Text>
+              <Text style={styles.sectionTitle}>{t('messages.messageContent')}</Text>
               <Text style={styles.charCount}>{charCount}/160 ({smsCount} SMS)</Text>
             </View>
             <TextInput
               style={styles.messageInput}
-              placeholder="Type your message here..."
+              placeholder={t('messages.messageContent')}
               multiline
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={enhancedTheme.colors.neutral400}
               value={messageContent}
               onChangeText={setMessageContent}
               maxLength={480} // Allow up to 3 SMS
@@ -663,176 +653,127 @@ const SendMessageModal = ({ visible, onClose, customer, onMessageSent }) => {
           {/* Info */}
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              💡 SMS will be sent directly from your device SIM. Messages over 160 characters will be split into multiple SMS. Select a SIM card above to choose which one to use.
+              💡 {t('messages.smsNotAvailable')}
             </Text>
           </View>
-        </ScrollView>
-
-        {isSending && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        )}
-      </View>
-    </Modal>
+      </ScrollView>
+    </ModernModal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginTop: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  cancelButton: {
-    color: colors.textSecondary,
-    fontSize: 16,
-  },
-  sendButton: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
   content: {
-    flex: 1,
-    padding: spacing.lg,
+    padding: enhancedTheme.spacing.lg,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: enhancedTheme.spacing.xl,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: enhancedTheme.colors.neutral900,
+    marginBottom: enhancedTheme.spacing.md,
   },
   recipientList: {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    padding: spacing.md,
+    backgroundColor: enhancedTheme.colors.neutral50,
+    borderRadius: enhancedTheme.borderRadius.md,
+    padding: enhancedTheme.spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: enhancedTheme.colors.neutral200,
   },
   recipientItem: {
-    marginBottom: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.sm,
+    paddingBottom: enhancedTheme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: enhancedTheme.colors.neutral200,
   },
   recipientName: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   recipientPhone: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   templateScroll: {
-    marginBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   templateButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.sm,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.md,
-    backgroundColor: colors.surface,
+    borderColor: enhancedTheme.colors.neutral200,
+    marginRight: enhancedTheme.spacing.lg,
+    backgroundColor: enhancedTheme.colors.neutral50,
   },
   templateButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: enhancedTheme.colors.primary,
+    borderColor: enhancedTheme.colors.primary,
   },
   templateText: {
     fontSize: 12,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   templateTextActive: {
-    color: 'white',
+    color: enhancedTheme.colors.surface,
     fontWeight: '600',
   },
   messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: enhancedTheme.spacing.md,
   },
   charCount: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: enhancedTheme.colors.neutral600,
   },
   messageInput: {
-    backgroundColor: colors.surface,
+    backgroundColor: enhancedTheme.colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: spacing.md,
+    borderColor: enhancedTheme.colors.neutral200,
+    borderRadius: enhancedTheme.borderRadius.md,
+    padding: enhancedTheme.spacing.lg,
     minHeight: 120,
     fontSize: 14,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     textAlignVertical: 'top',
   },
   infoBox: {
-    backgroundColor: colors.infoBackground || '#EEF4FF',
+    backgroundColor: enhancedTheme.colors.primary + '15',
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 6,
-    marginTop: spacing.lg,
+    borderLeftColor: enhancedTheme.colors.primary,
+    padding: enhancedTheme.spacing.lg,
+    borderRadius: enhancedTheme.borderRadius.sm,
+    marginTop: enhancedTheme.spacing.lg,
   },
   infoText: {
     fontSize: 12,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
     lineHeight: 18,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   simSelector: {
     flexDirection: 'column',
-    gap: spacing.md,
+    gap: enhancedTheme.spacing.lg,
   },
   simOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
+    paddingHorizontal: enhancedTheme.spacing.lg,
+    paddingVertical: enhancedTheme.spacing.lg,
+    borderRadius: enhancedTheme.borderRadius.md,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: enhancedTheme.colors.neutral200,
+    backgroundColor: enhancedTheme.colors.neutral50,
   },
   simOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '15',
+    borderColor: enhancedTheme.colors.primary,
+    backgroundColor: enhancedTheme.colors.primary + '15',
   },
   simOptionContent: {
     flex: 1,
@@ -840,23 +781,23 @@ const styles = StyleSheet.create({
   simOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   simOptionTextSelected: {
     fontWeight: '600',
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   simPhoneText: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    color: enhancedTheme.colors.neutral600,
+    marginTop: enhancedTheme.spacing.xs,
   },
   simPhoneTextSelected: {
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
   },
   simCheckmark: {
     fontSize: 20,
-    color: colors.primary,
+    color: enhancedTheme.colors.primary,
     fontWeight: '700',
   },
 });

@@ -1,14 +1,12 @@
-import React from 'react';
+import { Barcode, Search } from 'lucide-react-native';
 import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+    ActivityIndicator,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { enhancedTheme } from '../theme/enhancedTheme';
 
 const SearchBar = ({
   value,
@@ -21,29 +19,28 @@ const SearchBar = ({
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <Ionicons
-          name="search"
+        <Search
           size={20}
-          color={colors.darkGray}
+          color={enhancedTheme.colors.neutral500}
           style={styles.searchIcon}
         />
         <TextInput
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor={colors.darkGray}
+          placeholderTextColor={enhancedTheme.colors.neutral400}
           value={value}
           onChangeText={onChangeText}
           onSubmitEditing={onSearch}
           editable={!loading}
         />
-        {loading && <ActivityIndicator size="small" color={colors.primary} />}
+        {loading && <ActivityIndicator size="small" color={enhancedTheme.colors.primary} />}
       </View>
       <TouchableOpacity
         style={styles.barcodeButton}
         onPress={onBarcodeScan}
         disabled={loading}
       >
-        <Ionicons name="barcode" size={24} color={colors.white} />
+        <Barcode size={24} color={enhancedTheme.colors.surface} />
       </TouchableOpacity>
     </View>
   );
@@ -53,33 +50,33 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
+    paddingHorizontal: enhancedTheme.spacing.md,
+    paddingVertical: enhancedTheme.spacing.sm,
+    gap: enhancedTheme.spacing.sm,
   },
   inputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
+    backgroundColor: enhancedTheme.colors.surface,
+    borderRadius: enhancedTheme.borderRadius.md,
+    paddingHorizontal: enhancedTheme.spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: enhancedTheme.colors.neutral200,
   },
   searchIcon: {
-    marginRight: spacing.sm,
+    marginRight: enhancedTheme.spacing.sm,
   },
   input: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: enhancedTheme.spacing.md,
     fontSize: 16,
-    color: colors.text,
+    color: enhancedTheme.colors.neutral900,
   },
   barcodeButton: {
-    backgroundColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 8,
+    backgroundColor: enhancedTheme.colors.primary,
+    padding: enhancedTheme.spacing.md,
+    borderRadius: enhancedTheme.borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
